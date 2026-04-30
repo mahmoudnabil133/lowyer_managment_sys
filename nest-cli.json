@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json.schemastore.org/nest-cli",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "apps/lowyer_managment_microservice/src",
+  "compilerOptions": {
+    "deleteOutDir": true,
+    "webpack": true,
+    "tsConfigPath": "apps/lowyer_managment_microservice/tsconfig.app.json"
+  },
+  "monorepo": true,
+  "root": "apps/lowyer_managment_microservice",
+  "projects": {
+    "auth_service": {
+      "type": "application",
+      "root": "apps/auth_service",
+      "entryFile": "main",
+      "sourceRoot": "apps/auth_service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/auth_service/tsconfig.app.json"
+      }
+    },
+    "booking_service": {
+      "type": "application",
+      "root": "apps/booking_service",
+      "entryFile": "main",
+      "sourceRoot": "apps/booking_service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/booking_service/tsconfig.app.json"
+      }
+    },
+    "common": {
+      "type": "library",
+      "root": "libs/common",
+      "entryFile": "index",
+      "sourceRoot": "libs/common/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/common/tsconfig.lib.json"
+      }
+    },
+    "lowyer_managment_microservice": {
+      "type": "application",
+      "root": "apps/lowyer_managment_microservice",
+      "entryFile": "main",
+      "sourceRoot": "apps/lowyer_managment_microservice/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/lowyer_managment_microservice/tsconfig.app.json"
+      }
+    },
+    "notification_service": {
+      "type": "application",
+      "root": "apps/notification_service",
+      "entryFile": "main",
+      "sourceRoot": "apps/notification_service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/notification_service/tsconfig.app.json"
+      }
+    },
+    "rmq": {
+      "type": "library",
+      "root": "libs/rmq",
+      "entryFile": "index",
+      "sourceRoot": "libs/rmq/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/rmq/tsconfig.lib.json"
+      }
+    }
+  }
+}
