@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
 import { NotificationServiceController } from './notification_service.controller';
 import { NotificationServiceService } from './notification_service.service';
+import { RmqModule } from '@app/rmq';
 
 @Module({
-  imports: [],
+  imports: [RmqModule.forRoot()],
   controllers: [NotificationServiceController],
   providers: [NotificationServiceService],
 })

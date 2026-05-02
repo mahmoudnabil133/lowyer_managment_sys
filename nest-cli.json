@@ -1,14 +1,14 @@
 {
   "$schema": "https://json.schemastore.org/nest-cli",
   "collection": "@nestjs/schematics",
-  "sourceRoot": "apps/lowyer_managment_microservice/src",
+  "sourceRoot": "apps/auth_service/src",
   "compilerOptions": {
     "deleteOutDir": true,
     "webpack": true,
-    "tsConfigPath": "apps/lowyer_managment_microservice/tsconfig.app.json"
+    "tsConfigPath": "apps/auth_service/tsconfig.app.json"
   },
   "monorepo": true,
-  "root": "apps/lowyer_managment_microservice",
+  "root": "apps/auth_service",
   "projects": {
     "auth_service": {
       "type": "application",
@@ -35,15 +35,6 @@
       "sourceRoot": "libs/common/src",
       "compilerOptions": {
         "tsConfigPath": "libs/common/tsconfig.lib.json"
-      }
-    },
-    "lowyer_managment_microservice": {
-      "type": "application",
-      "root": "apps/lowyer_managment_microservice",
-      "entryFile": "main",
-      "sourceRoot": "apps/lowyer_managment_microservice/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/lowyer_managment_microservice/tsconfig.app.json"
       }
     },
     "notification_service": {
