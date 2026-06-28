@@ -15,7 +15,8 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { AppointmentType } from '../models/appointment.schema';
-import {DayOfWeek} from '../models/provider-schedule.schema';
+import { DayOfWeek } from '../models/provider-schedule.schema';
+import { PartialType } from '@nestjs/mapped-types';
 
 // ─── Schedule DTOs ─────────────────────────────────────────────────────────────
 
@@ -43,8 +44,8 @@ export class DayScheduleDto {
 }
 
 export class CreateProviderScheduleDto {
-  @IsMongoId()
-  providerId: string;
+  // @IsMongoId()
+  // providerId: string;
 
   @IsNumber()
   @Min(5)
@@ -84,35 +85,41 @@ export class CreateProviderScheduleDto {
 
   @IsString()
   timezone: string;
-}
-
-export class UpdateProviderScheduleDto {
-  @IsNumber()
-  @Min(5)
-  @Max(240)
-  @IsOptional()
-  slotDurationMinutes?: number;
-
-  @IsNumber()
-  @Min(0)
-  @IsOptional()
-  bufferMinutes?: number;
-
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => DayScheduleDto)
-  @IsOptional()
-  weeklySchedule?: DayScheduleDto[];
-
-  @IsArray()
-  @IsDateString({}, { each: true })
-  @IsOptional()
-  blockedDates?: string[];
 
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
 }
+
+export class UpdateProviderScheduleDto extends PartialType(CreateProviderScheduleDto) { }
+
+// export class UpdateProviderScheduleDto {
+//   @IsNumber()
+//   @Min(5)
+//   @Max(240)
+//   @IsOptional()
+//   slotDurationMinutes?: number;
+
+//   @IsNumber()
+//   @Min(0)
+//   @IsOptional()
+//   bufferMinutes?: number;
+
+//   @IsArray()
+//   @ValidateNested({ each: true })
+//   @Type(() => DayScheduleDto)
+//   @IsOptional()
+//   weeklySchedule?: DayScheduleDto[];
+
+//   @IsArray()
+//   @IsDateString({}, { each: true })
+//   @IsOptional()
+//   blockedDates?: string[];
+
+//   @IsBoolean()
+//   @IsOptional()
+//   isActive?: boolean;
+// }
 
 // ─── Slot DTOs ─────────────────────────────────────────────────────────────────
 
@@ -146,15 +153,13 @@ export class HoldSlotDto {
 
 // ─── Appointment DTOs ──────────────────────────────────────────────────────────
 
+// Remove patientId from BookAppointmentDto
 export class BookAppointmentDto {
   @IsMongoId()
   slotId: string;
 
   @IsMongoId()
   providerId: string;
-
-  @IsMongoId()
-  patientId: string;
 
   @IsString()
   patientFullName: string;
@@ -179,46 +184,31 @@ export class BookAppointmentDto {
   chiefComplaint?: string;
 }
 
+// Remove cancelledByUserId and cancelledByRole
 export class CancelAppointmentDto {
   @IsMongoId()
   appointmentId: string;
 
   @IsString()
   reason: string;
-
-  @IsMongoId()
-  cancelledByUserId: string;
-
-  @IsString()
-  cancelledByRole: string;
 }
 
+// Remove rescheduledByUserId and rescheduledByRole
 export class RescheduleAppointmentDto {
   @IsMongoId()
   appointmentId: string;
 
   @IsMongoId()
   newSlotId: string;
-
-  @IsMongoId()
-  rescheduledByUserId: string;
-
-  @IsString()
-  rescheduledByRole: string;
 }
 
+// Remove changedByUserId and changedByRole
 export class UpdateAppointmentStatusDto {
   @IsMongoId()
   appointmentId: string;
 
   @IsString()
   toStatus: string;
-
-  @IsMongoId()
-  changedByUserId: string;
-
-  @IsString()
-  changedByRole: string;
 
   @IsString()
   @IsOptional()
