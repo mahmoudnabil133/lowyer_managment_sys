@@ -1,82 +1,82 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Types } from "mongoose";
 
-export enum AppointmentStatus{
-    PENDING = 'pending',
-    CONFIRMED = 'confirmed',
-    CHECKED_IN = 'checked_in',
-    IN_PROGRESS = 'in_progress',
-    CANCELLED = 'cancelled',
-    COMPLETED = 'completed',
-    NO_SHOW = 'no_show',
-    RESCHEDULED = 'rescheduled',
+export enum AppointmentStatus {
+  PENDING = 'pending',
+  CONFIRMED = 'confirmed',
+  CHECKED_IN = 'checked_in', // Patient has arrived and checked in
+  IN_PROGRESS = 'in_progress', // Appointment is currently happening
+  CANCELLED = 'cancelled',
+  COMPLETED = 'completed',
+  NO_SHOW = 'no_show',
+  RESCHEDULED = 'rescheduled',
 }
 
-export enum AppointmentType{
-    IN_PERSON = 'in_person',
-    VIRTUAL = 'virtual',
-    HOME_VISIT = 'home_visit',
+export enum AppointmentType {
+  IN_PERSON = 'in_person',
+  VIRTUAL = 'virtual',
+  HOME_VISIT = 'home_visit',
 }
 
 export enum CancelledBy {
-    PATIENT = 'patient',
-    PROVIDER = 'provider',
-    SYSTEM = 'system',
+  PATIENT = 'patient',
+  PROVIDER = 'provider',
+  SYSTEM = 'system',
 }
 
 // PATIENT INFO AS EMBEDDED DOCS (DENORMALIZED) IN APPOINTMENT DOCS FOR QUICK ACCESS
-@Schema({_id:false})
-export class PatientInfo{
+@Schema({ _id: false })
+export class PatientInfo {
 
-  @Prop({type: Types.ObjectId, required: true})
+  @Prop({ type: Types.ObjectId, required: true })
   patientId: Types.ObjectId;
 
-  @Prop({required: true})
+  @Prop({ required: true })
   fullName: string;
 
-  @Prop({required: true})
+  @Prop({ required: true })
   phone: string;
 
   @Prop()
-  email:string;
+  email: string;
 
   @Prop()
   dateOfBirth: Date;
 }
 
-@Schema({_id:false})
-export class CancellationDetails{
-  @Prop({enum:CancelledBy, required:true})
+@Schema({ _id: false })
+export class CancellationDetails {
+  @Prop({ enum: CancelledBy, required: true })
   cancelledBy: CancelledBy;
 
-  @Prop({type: Types.ObjectId})
-  cancelledByUserId:Types.ObjectId;
+  @Prop({ type: Types.ObjectId })
+  cancelledByUserId: Types.ObjectId;
 
-  @Prop({required: true})
-  reason:string;
+  @Prop({ required: true })
+  reason: string;
 
-  @Prop({required: true})
-  cancelledAt:Date;
+  @Prop({ required: true })
+  cancelledAt: Date;
 
-  @Prop({default:false})
-  refundIssued:boolean;
+  @Prop({ default: false })
+  refundIssued: boolean;
 }
 
-@Schema({_id:false})
+@Schema({ _id: false })
 
-export class RescheduleInfo{
+export class RescheduleInfo {
 
-  @Prop({type: Types.ObjectId})
-  previousSlotId:Types.ObjectId;
-
-  @Prop()
-  previousStartTime:Date;
+  @Prop({ type: Types.ObjectId })
+  previousSlotId: Types.ObjectId;
 
   @Prop()
-  rescheduledAt:Date;
+  previousStartTime: Date;
 
-  @Prop({type: Types.ObjectId})
-  rescheduledByUserId:Types.ObjectId;
+  @Prop()
+  rescheduledAt: Date;
+
+  @Prop({ type: Types.ObjectId })
+  rescheduledByUserId: Types.ObjectId;
 }
 
 @Schema({ timestamps: true, collection: 'appointments' })
@@ -149,8 +149,8 @@ export class Appointment {
   @Prop({ type: CancellationDetails })
   cancellation?: CancellationDetails;
 
-  @Prop({ type: RescheduleInfo})
-  reschedule?: RescheduleInfo ;
+  @Prop({ type: RescheduleInfo })
+  reschedule?: RescheduleInfo;
 
   // For RESCHEDULED appointments - points to the new appointment
   @Prop({ type: Types.ObjectId })
@@ -160,7 +160,7 @@ export const AppointmentSchema = SchemaFactory.createForClass(Appointment);
 
 // indexes
 // provider dash (get all appointments for a provider on a date)
-AppointmentSchema.index(({providerId:1, startTime:1}))
+AppointmentSchema.index(({ providerId: 1, startTime: 1 }))
 
 // Patient history - get all past appointments for a patient
 AppointmentSchema.index({ 'patient.patientId': 1, startTime: -1 });
