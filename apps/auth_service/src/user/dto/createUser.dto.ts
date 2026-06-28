@@ -8,9 +8,9 @@ import {
   IsBoolean,
   IsEnum,
 } from 'class-validator';
-import { Role } from '../../common/types/roles.enum';
+import { Role } from '@app/common'
 
-export class CreateUserDto{
+export class CreateUserDto {
   @IsString()
   @IsNotEmpty()
   name: string;
@@ -22,8 +22,8 @@ export class CreateUserDto{
   @IsString()
   @MinLength(5)
   password: string;
-  
-  
+
+
   @IsEnum(Role)
   @IsOptional()
   role?: Role;
