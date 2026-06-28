@@ -22,10 +22,10 @@ export class AppointmentHistory {
   @Prop({ type: Types.ObjectId, required: true })
   patientId: Types.ObjectId;
 
-  @Prop({ enum: AppointmentStatus })
+  @Prop({ type: String, enum: AppointmentStatus })
   fromStatus?: AppointmentStatus;
 
-  @Prop({ required: true, enum: AppointmentStatus })
+  @Prop({ type: String, required: true, enum: AppointmentStatus })
   toStatus: AppointmentStatus;
 
   // Who triggered this change?
