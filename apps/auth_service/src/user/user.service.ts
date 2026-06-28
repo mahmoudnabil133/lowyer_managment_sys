@@ -10,14 +10,12 @@ import { Model } from 'mongoose';
 import { CreateUserDto } from './dto/createUser.dto';
 import * as bcrypt from 'bcryptjs';
 import { UpdateUserDto } from './dto/updateUser.dto';
-import { ApiQueryDto } from '../common/dto/api-query.dto';
-import { PaginatedResponse } from '../common/types/paginated-res.interface';
-import { ApiFeatureService } from '../common/api-filter/api-filter.service';
+import { ApiFeatureService, ApiQueryDto, PaginatedResponse } from '@app/common';
 @Injectable()
 export class UserService {
   constructor(
     @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
-  ) {}
+  ) { }
 
   async createUser(createUserDto: CreateUserDto) {
     const isExist = await this.userModel.findOne({
@@ -51,7 +49,7 @@ export class UserService {
       throw new NotFoundException('User not found');
     }
     user.password = undefined;
-    return user; 
+    return user;
   }
 
   async updateOne(
@@ -81,7 +79,7 @@ export class UserService {
     if (!user) {
       throw new NotFoundException('User not found');
     }
-    if (!await  bcrypt.compare(oldPassword, user.password)) {
+    if (!await bcrypt.compare(oldPassword, user.password)) {
       throw new NotFoundException('wrong password');
     }
     user.password = await bcrypt.hash(newPassword, 12);
@@ -124,7 +122,7 @@ export class UserService {
 
   async findByResetCode(
     resetCode: string,
-  ): Promise<UserDocument|null> {
+  ): Promise<UserDocument | null> {
     let user = await this.userModel.findOne({
       passwordResetCode: resetCode,
       passwordResetCodeExpiresIn: { $gt: Date.now() },
