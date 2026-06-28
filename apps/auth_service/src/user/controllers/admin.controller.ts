@@ -9,14 +9,15 @@ import {
   UseGuards, Query,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { RolesGuard } from '../../auth/Roles/roles.guard';
+// import { RolesGuard } from '../../auth/Roles/roles.guard';
 import { UserService } from '../user.service';
 import { CreateUserDto } from '../dto/createUser.dto';
 import { UpdateUserDto } from '../dto/updateUser.dto';
-import { Role } from '../../common/types/roles.enum';
-import { Roles } from '../../common/decorators/roles.decorator';
-import { ApiQueryDto } from '../../common/dto/api-query.dto';
-import { ValidateObjectIdPipe } from '../../common/validateObjectId.pipe';
+// import { Role } from '../../common/types/roles.enum';
+// import { Roles } from '../../common/decorators/roles.decorator';
+import { ApiQueryDto } from '../../../../../libs/common/src/global/dto/api-query.dto';
+import { ValidateObjectIdPipe } from '../../../../../libs/common/src/global/pipes/validateObjectId.pipe';
+import { Role, Roles, RolesGuard } from '@app/common';
 
 
 
@@ -24,7 +25,7 @@ import { ValidateObjectIdPipe } from '../../common/validateObjectId.pipe';
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 @Roles([Role.ADMIN])
 export class AdminController {
-  constructor(private readonly usersService: UserService) {}
+  constructor(private readonly usersService: UserService) { }
 
   // 🔹 CREATE USER
   @Post()
