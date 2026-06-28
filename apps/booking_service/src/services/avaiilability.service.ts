@@ -6,9 +6,7 @@ import { ProviderSchedule, ProviderScheduleDocument, } from '../models/provider-
 import { GetAvailableRangeDto, GetAvailableSlotsDto, HoldSlotDto, } from '../dtos/booking.dto';
 import { DateTime } from 'luxon';
 
-
 const HOLD_DURATION_MINUTES = 10;
-
 
 @Injectable()
 export class AvailabilityService {
@@ -17,7 +15,7 @@ export class AvailabilityService {
     private slotModel: Model<TimeSlotDocument>,
     @InjectModel(ProviderSchedule.name)
     private scheduleModel: Model<ProviderScheduleDocument>,
-  ) {}
+  ) { }
 
   // quiry all available slots (may by hold but expired)
   async getAvailableSlots(dto: GetAvailableSlotsDto) {
@@ -34,7 +32,7 @@ export class AvailabilityService {
 
     return slots.filter((slot) => {
       if (slot.status === SlotStatus.HOLD) {
-        return slot.heldExpireDate && slot.heldExpireDate <= now;
+        return slot.heldExpireDate && slot.heldExpireDate >= now; // so slot is not hold now
       }
       return slot.bookedCount < slot.maxBookings;
     });
@@ -43,9 +41,9 @@ export class AvailabilityService {
   // return a clender style availability(monthly calender where each month has its own available slots)
   async getAvailabilityRage(dto: GetAvailableRangeDto) {
     let now = new Date();
-    const from = DateTime.fromISO(dto.fromDate);
+    const from = DateTime.fromISO(dto.fromDate); // converted type to DateTime
     const to = DateTime.fromISO(dto.toDate);
-    if (from < to) {
+    if (from > to) {
       throw new BadRequestException('toDate must be after fromDate');
     }
     if (to.diff(from, 'days').days > 60) {
@@ -94,7 +92,11 @@ export class AvailabilityService {
       .plus({ minutes: HOLD_DURATION_MINUTES })
       .toJSDate();
 
-    const slot = await this.slotModel.findByIdAndUpdate(
+    console.log(dto);
+
+
+
+    const slot = await this.slotModel.findOneAndUpdate(
       {
         _id: dto.slotId,
         status: SlotStatus.AVAILABLE,
@@ -140,24 +142,32 @@ export class AvailabilityService {
 
   // release slot
 
-  async releaseSlot(slotId: string, patientId: string): Promise<void> {
-    await this.slotModel.findByIdAndUpdate(
+  async releaseSlot(slotId: string, patientId: string): Promise<any> {
+    const slot = await this.slotModel.findOneAndUpdate({ _id: slotId, holdBy: patientId, status: SlotStatus.HOLD },
       {
-        _id: slotId,
-        status: SlotStatus.HOLD,
-        holdBy: patientId,
+        $set: {
+          status: SlotStatus.AVAILABLE,
+          holdBy: null,
+          heldExpireDate: null,
+        },
       },
-      {
-        status: SlotStatus.AVAILABLE,
-        holdBy: null,
-        heldexpireDate: null,
-      },
+      { new: true },
     );
+
+    if (!slot) {
+      throw new NotFoundException(`no held slots for this user`)
+    }
+    return slot;
   }
 
   // ─── Provider Rule Validation ─────────────────────────────────────────
   // validate provider availability to accept the appointment
 
+  /**
+   * book appointment
+   *  1- validate provider availability
+   *  
+   */
   async validateProviderAvailability(
     providerId: string,
     appointmentDate: Date,
