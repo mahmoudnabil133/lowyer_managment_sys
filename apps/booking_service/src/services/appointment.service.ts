@@ -1,5 +1,7 @@
 import {
   BadRequestException,
+  ConflictException,
+  Inject,
   Injectable,
   Logger,
   NotFoundException,
@@ -12,7 +14,7 @@ import {
   CancelledBy,
 } from '../models/appointment.schema';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
-import { Connection, Model } from 'mongoose';
+import { Connection, Model, Types } from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
 
 import {
@@ -29,6 +31,9 @@ import {
   UpdateAppointmentStatusDto,
 } from '../dtos/booking.dto';
 import { DateTime } from 'luxon';
+import { ClientProxy } from '@nestjs/microservices';
+import { SlotStatus } from '../models/slot.schema';
+import { ApiFeatureService } from '@app/common';
 
 const ALLOWED_TRANSITIONS: Record<AppointmentStatus, AppointmentStatus[]> = {
   [AppointmentStatus.PENDING]: [
@@ -37,13 +42,12 @@ const ALLOWED_TRANSITIONS: Record<AppointmentStatus, AppointmentStatus[]> = {
   ],
   [AppointmentStatus.CONFIRMED]: [
     AppointmentStatus.CHECKED_IN,
-    AppointmentStatus.CANCELLED,
     AppointmentStatus.NO_SHOW,
     AppointmentStatus.RESCHEDULED,
   ],
   [AppointmentStatus.CHECKED_IN]: [
     AppointmentStatus.IN_PROGRESS,
-    AppointmentStatus.CANCELLED,
+    AppointmentStatus.COMPLETED
   ],
   [AppointmentStatus.IN_PROGRESS]: [AppointmentStatus.COMPLETED],
   [AppointmentStatus.COMPLETED]: [],
@@ -61,8 +65,8 @@ export class AppointmentService {
     private historyModel: Model<AppointmentHistoryDocument>,
     @InjectConnection() private connection: Connection,
     private availabilityService: AvailabilityService,
-    private amqpConnection: AmqpConnection,
-  ) {}
+    @Inject('NOTIFICATION_SERVICE') private readonly notificationClient: ClientProxy,
+  ) { }
 
   // create appointment
   // steps
@@ -78,12 +82,21 @@ export class AppointmentService {
    *
    * */
 
-  async bookAppointment(dto: BookAppointmentDto) {
+  async bookAppointment(dto: BookAppointmentDto, patientId: string) {
     const slot = await this.availabilityService['slotModel']
       .findById(dto.slotId)
       .lean();
     if (!slot) {
       throw new NotFoundException('Slot not found');
+    }
+    if (slot.status === SlotStatus.HOLD && slot.holdBy?.toString() !== patientId) {
+      throw new ConflictException('Slot is hold by another user');
+    }
+    const isHeldBySystem =
+      slot.status === SlotStatus.HOLD || slot.status === SlotStatus.AVAILABLE; // slot is found but booked
+
+    if (!isHeldBySystem) {
+      throw new ConflictException('Slot is no longer availablee');
     }
     await this.availabilityService.validateProviderAvailability(
       dto.providerId,
@@ -101,7 +114,7 @@ export class AppointmentService {
               providerId: dto.providerId,
               slotId: dto.slotId,
               patient: {
-                patientId: dto.patientId,
+                patientId: patientId,
                 fullName: dto.patientFullName,
                 phone: dto.patientPhone,
                 email: dto.patientEmail,
@@ -128,31 +141,31 @@ export class AppointmentService {
             {
               appointmentId: appointment._id,
               providerId: dto.providerId,
-              patientId: dto.patientId,
+              patientId: patientId,
               fromStatus: AppointmentStatus.PENDING,
               toStatus: AppointmentStatus.PENDING,
-              changedByUserId: dto.patientId,
+              changedByUserId: patientId,
               changedByRole: 'patient',
               note: 'Appointment created',
             },
           ],
           { session },
         );
+        await this.publishEvent('appointment.booked', {
+          appointmentId: appointment!._id,
+          bookingRef: appointment!.bookingRef,
+          providerId: dto.providerId,
+          patientId: patientId,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          type: dto.type,
+        });
+
+        return appointment;
       });
     } finally {
       await session.endSession();
     }
-    await this.publishEvent('appointment.booked', {
-      appointmentId: appointment!._id,
-      bookingRef: appointment!.bookingRef,
-      providerId: dto.providerId,
-      patientId: dto.patientId,
-      startTime: slot.startTime,
-      endTime: slot.endTime,
-      type: dto.type,
-    });
-
-    return appointment;
   }
 
   // cancell appointment
@@ -160,7 +173,7 @@ export class AppointmentService {
    *
    * */
 
-  async cancelAppointment(dto: CancelAppointmentDto) {
+  async cancelAppointment(dto: CancelAppointmentDto, cancelledByUserId: string, cancelledByRole: string) {
     const appointment = await this.appointmentModel.findById(dto.appointmentId);
     if (!appointment) {
       throw new NotFoundException('Appointment not found');
@@ -172,7 +185,7 @@ export class AppointmentService {
       DateTime.utc(),
       'hours',
     ).hours;
-    if (hoursUntil < 2 && dto.cancelledByRole === 'patient') {
+    if (hoursUntil < 2 && cancelledByRole === 'patient') {
       throw new BadRequestException(
         'Appointments cannot be cancelled less than 2 hours before the scheduled time',
       );
@@ -184,8 +197,8 @@ export class AppointmentService {
         appointment.status = AppointmentStatus.CANCELLED;
 
         appointment.cancellation = {
-          cancelledBy: dto.cancelledByRole as CancelledBy,
-          cancelledByUserId: dto.cancelledByUserId as any,
+          cancelledBy: cancelledByRole as CancelledBy,
+          cancelledByUserId: cancelledByUserId as any,
           reason: dto.reason,
           cancelledAt: new Date(),
           refundIssued: false,
@@ -206,28 +219,29 @@ export class AppointmentService {
               patientId: appointment.patient.patientId,
               fromStatus: prevStatus,
               toStatus: AppointmentStatus.CANCELLED,
-              changedByUserId: dto.cancelledByUserId,
-              changedByRole: dto.cancelledByRole,
+              changedByUserId: cancelledByUserId,
+              changedByRole: cancelledByRole,
               note: dto.reason,
             },
           ],
           { session },
         );
+        await this.publishEvent('appointment.cancelled', {
+          appointmentId: appointment._id,
+          bookingRef: appointment.bookingRef,
+          providerId: appointment.providerId,
+          patientId: appointment.patient.patientId,
+          reason: dto.reason,
+          cancelledByRole: cancelledByRole,
+          startTime: appointment.startTime,
+          refundRequired: appointment.isPaid,
+        });
+        return appointment;
       });
     } finally {
       await session.endSession();
     }
-    await this.publishEvent('appointment.cancelled', {
-      appointmentId: appointment._id,
-      bookingRef: appointment.bookingRef,
-      providerId: appointment.providerId,
-      patientId: appointment.patient.patientId,
-      reason: dto.reason,
-      cancelledByRole: dto.cancelledByRole,
-      startTime: appointment.startTime,
-      refundRequired: appointment.isPaid,
-    });
-    return appointment;
+
   }
 
   /*
@@ -245,12 +259,17 @@ export class AppointmentService {
    * 11) event publish
    * */
 
-  async rescheduleAppointment(dto: RescheduleAppointmentDto) {
+  async rescheduleAppointment(dto: RescheduleAppointmentDto, rescheduledByUserId: string, rescheduledByRole: string) {
+    console.log(`reschedule dto is ==> \n${JSON.stringify(dto)}`);
+
     const appointment = await this.appointmentModel.findById(dto.appointmentId);
     if (!appointment) {
       throw new NotFoundException('Appointment not found');
     }
 
+    if (appointment.slotId.toString() === dto.newSlotId) {
+      throw new BadRequestException('new slot is same as old slot');
+    }
     const slot = await this.availabilityService['slotModel'].findById(
       dto.newSlotId,
     );
@@ -278,9 +297,9 @@ export class AppointmentService {
           previousSlotId: appointment.slotId,
           previousStartTime: appointment.startTime,
           rescheduledAt: new Date(),
-          rescheduledByUserId: dto.rescheduledByUserId as any,
+          rescheduledByUserId: rescheduledByUserId as any,
         };
-        const [newAppointment] = await this.appointmentModel.create(
+        [newAppointment] = await this.appointmentModel.create(
           [
             {
               bookingRef: this.generateBookingRef(),
@@ -313,32 +332,35 @@ export class AppointmentService {
               patientId: appointment.patient.patientId,
               fromStatus: appointment.status,
               toStatus: AppointmentStatus.RESCHEDULED,
-              changedByUserId: dto.rescheduledByUserId,
-              changedByRole: dto.rescheduledByRole,
+              changedByUserId: rescheduledByUserId,
+              changedByRole: rescheduledByRole,
               note: `Rescheduled to ${newAppointment.bookingRef}`,
             },
           ],
           { session },
         );
+        await this.publishEvent('appointment.rescheduled', {
+          oldAppointmentId: appointment._id,
+          newAppointmentId: newAppointment!._id,
+          newBookingRef: newAppointment!.bookingRef,
+          providerId: appointment.providerId,
+          patientId: appointment.patient.patientId,
+          oldStartTime: appointment.startTime,
+          newStartTime: slot.startTime,
+        });
       });
     } finally {
       await session.endSession();
     }
-    await this.publishEvent('appointment.rescheduled', {
-      oldAppointmentId: appointment._id,
-      newAppointmentId: newAppointment!._id,
-      newBookingRef: newAppointment!.bookingRef,
-      providerId: appointment.providerId,
-      patientId: appointment.patient.patientId,
-      oldStartTime: appointment.startTime,
-      newStartTime: slot.startTime,
-    });
+
     return appointment;
   }
 
   // manually update status by clinic staff (cehck-in , in_progress, complleted)
   async updateStatus(
     dto: UpdateAppointmentStatusDto,
+    changedByUserId: string,
+    changedByRole: string,
   ): Promise<AppointmentDocument> {
     const appointment = await this.appointmentModel.findById(dto.appointmentId);
     if (!appointment) throw new NotFoundException('Appointment not found');
@@ -356,8 +378,8 @@ export class AppointmentService {
       patientId: appointment.patient.patientId,
       fromStatus: prevStatus,
       toStatus,
-      changedByUserId: dto.changedByUserId,
-      changedByRole: dto.changedByRole,
+      changedByUserId,
+      changedByRole,
       note: dto.note,
     });
 
@@ -396,48 +418,71 @@ export class AppointmentService {
     if (!appt) throw new NotFoundException('Appointment not found');
     return appt as any;
   }
-  // get provider appointments
-  async getProviderAppointments(
-    providerId: string,
-    date: string,
-    status?: AppointmentStatus,
-  ) {
-    const from = DateTime.fromISO(date).startOf('day').toJSDate();
-    const to = DateTime.fromISO(date).endOf('day').toJSDate();
+  async getProviderAppointments(providerId: string, queryArgs: any) {
+    const filter: any = { providerId };
+    if (queryArgs.date) {
+      const from = DateTime.fromISO(queryArgs.date).startOf('day').toJSDate();
+      const to = DateTime.fromISO(queryArgs.date).endOf('day').toJSDate();
+      filter.startTime = { $gte: from, $lte: to };
+    }
+    if (queryArgs.status) {
+      filter.status = queryArgs.status;
+    }
 
-    const filter: any = { providerId, startTime: { $gte: from, $lte: to } };
-    if (status) filter.status = status;
+    // delete them as they will to avoid filtering y these properities
+    delete queryArgs.date;
+    delete queryArgs.status;
 
-    return this.appointmentModel.find(filter).sort({ startTime: 1 }).lean();
+    const features = new ApiFeatureService(queryArgs, this.appointmentModel, filter);
+
+    if (!queryArgs.sort) {
+      features.query = features.query.sort({ startTime: 1 });
+    }
+
+    // 5. Chain the rest of the features and execute
+    return await features
+      .filter()
+      .sort()
+      .select()
+      .paginate()
+      .execute();
   }
 
-  // get patient appointments history
-  async getPatientAppointments(
-    patientId: string,
-    page = 1,
-    limit = 10,
-    status?: AppointmentStatus,
-  ) {
+  async getPatientAppointments(patientId: string, queryArgs: any) {
     const filter: any = { 'patient.patientId': patientId };
-    if (status) filter.status = status;
 
-    const [data, total] = await Promise.all([
-      this.appointmentModel
-        .find(filter)
-        .sort({ startTime: -1 })
-        .skip((page - 1) * limit)
-        .limit(limit)
-        .lean(),
-      this.appointmentModel.countDocuments(filter),
-    ]);
+    if (queryArgs.date) {
+      const from = DateTime.fromISO(queryArgs.date).startOf('day').toJSDate();
+      const to = DateTime.fromISO(queryArgs.date).endOf('day').toJSDate();
+      filter.startTime = { $gte: from, $lte: to };
+    }
 
-    return { data, total, page, limit, pages: Math.ceil(total / limit) };
+    if (queryArgs.status) {
+      filter.status = queryArgs.status;
+    }
+
+    delete queryArgs.date;
+    delete queryArgs.status;
+
+    const features = new ApiFeatureService(queryArgs, this.appointmentModel, filter);
+
+    if (!queryArgs.sort) {
+      features.query = features.query.sort({ startTime: -1 });
+    }
+
+    return await features
+      .filter()
+      .sort()
+      .select()
+      .paginate()
+      .execute();
   }
 
   // get appointment history (audit trails)
   async getAppointmentHistory(appointmentId: string) {
-    return this.historyModel
-      .find({ appointmentId })
+    console.log({ appointmentId })
+    return await this.historyModel
+      .find({ appointmentId: new Types.ObjectId(appointmentId) })
       .sort({ createdAt: 1 })
       .lean();
   }
@@ -466,18 +511,17 @@ export class AppointmentService {
   }
 
   private async publishEvent(
-    routingKey: string,
+    pattern: string,
     payload: object,
   ): Promise<void> {
     try {
-      await this.amqpConnection.publish('booking.exchange', routingKey, {
+      // NestJS ClientProxy uses .emit() for asynchronous fire-and-forget message patterns
+      this.notificationClient.emit(pattern, {
         ...payload,
         timestamp: new Date().toISOString(),
       });
     } catch (err) {
-      // Log but don't throw — event failure shouldn't break the booking
-      // This implements "fire and forget" pattern
-      this.logger.error(`Failed to publish event '${routingKey}'`, err);
+      this.logger.error(`Failed to emit event with pattern '${pattern}'`, err);
     }
   }
 }
