@@ -10,10 +10,8 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Req,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
-import { RolesGuard } from '../guards/roles.guard';
-import { Roles } from '../decorators/roles.decorator';
 import { AppointmentService } from './services/appointment.service';
 import { AvailabilityService } from './services/avaiilability.service';
 import { SlotGeneratorService } from './services/slot-generator.service';
@@ -30,15 +28,17 @@ import {
   UpdateProviderScheduleDto,
 } from './dtos/booking.dto';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { ProviderSchedule, ProviderScheduleDocument } from './models/provider-schedule.schema';
+import { AuthGuard } from '@nestjs/passport';
+import { Role, Roles, RolesGuard } from '@app/common';
 
 // ─── Availability ─────────────────────────────────────────────────────────────
 
 @Controller('availability')
-@UseGuards(JwtAuthGuard)
+@UseGuards(AuthGuard('jwt'))
 export class AvailabilityController {
-  constructor(private availabilityService: AvailabilityService) {}
+  constructor(private availabilityService: AvailabilityService) { }
 
   @Get('slots')
   getSlots(@Query() dto: GetAvailableSlotsDto) {
@@ -47,88 +47,122 @@ export class AvailabilityController {
 
   @Get('range')
   getRange(@Query() dto: GetAvailableRangeDto) {
-    return this.availabilityService.getAvailabilityRange(dto);
+    return this.availabilityService.getAvailabilityRage(dto);
   }
 
-  @Post('hold')
+  @Post('hold/:slotId')
   @HttpCode(HttpStatus.OK)
-  holdSlot(@Body() dto: HoldSlotDto) {
-    return this.availabilityService.holdSlot(dto);
+  holdSlot(@Param('slotId') slotId: string, @Req() req: any) {
+    const data: HoldSlotDto = { slotId, patientId: req.user.userId };
+    return this.availabilityService.holdSlot(data);
   }
 
-  @Post('release-hold')
+  @Post('release-hold/:slotId')
   @HttpCode(HttpStatus.OK)
-  releaseHold(@Body() dto: { slotId: string; patientId: string }) {
-    return this.availabilityService.releaseHold(dto.slotId, dto.patientId);
+  releaseHold(@Param('slotId') slotId: string, @Req() req: any) {
+    const data: HoldSlotDto = { slotId, patientId: req.user.userId };
+    console.log(data);
+
+    return this.availabilityService.releaseSlot(data.slotId, data.patientId);
   }
 }
 
 // ─── Appointments ─────────────────────────────────────────────────────────────
 
 @Controller('appointments')
-@UseGuards(JwtAuthGuard)
+@UseGuards(AuthGuard('jwt'))
 export class AppointmentController {
-  constructor(private appointmentService: AppointmentService) {}
+  constructor(private readonly appointmentService: AppointmentService) { }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  book(@Body() dto: BookAppointmentDto) {
-    return this.appointmentService.bookAppointment(dto);
+  async book(@Body() dto: BookAppointmentDto, @Req() req: any) {
+    const patientId = req.user.userId;
+    return await this.appointmentService.bookAppointment(dto, patientId);
+  }
+
+  /**
+ * for authenticated users 
+ */
+
+  @Get('my-appointments')
+  async getMyAppointments(
+    @Req() req: any,
+    @Query() queryArgs: any, // this capture page, limit, sort, status, date, etc
+  ) {
+    const userId = req.user.userId;
+    const role = req.user.role;
+    if (role === Role.USER) {
+      console.log(`user req, ${userId}`)
+      return await this.appointmentService.getPatientAppointments(userId, queryArgs);
+    }
+    console.log(`provider req, ${userId}`)
+    return await this.appointmentService.getProviderAppointments(userId, queryArgs);
   }
 
   @Get(':id')
-  getById(@Param('id') id: string) {
-    return this.appointmentService.getAppointmentById(id);
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles([Role.ADMIN])
+  async getById(@Param('id') id: string) {
+    return await this.appointmentService.getAppointmentById(id);
   }
 
   @Get(':id/history')
-  getHistory(@Param('id') id: string) {
-    return this.appointmentService.getAppointmentHistory(id);
+  async getHistory(@Param('id') id: string) {
+    return await this.appointmentService.getAppointmentHistory(id);
   }
 
+
+
+  /**
+   * this 2 routes for admin users
+   */
   @Get('provider/:providerId')
-  @Roles('provider', 'admin')
-  @UseGuards(RolesGuard)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles([Role.ADMIN, Role.PROVIDER])
   getProviderAppointments(
     @Param('providerId') providerId: string,
-    @Query('date') date: string,
-    @Query('status') status?: string,
+    @Query() queryArgs: any, // this capture page, limit, sort, status, date, etc
   ) {
-    return this.appointmentService.getProviderAppointments(providerId, date, status as any);
+    return this.appointmentService.getProviderAppointments(providerId, queryArgs);
   }
 
   @Get('patient/:patientId')
   getPatientAppointments(
     @Param('patientId') patientId: string,
-    @Query('page') page = 1,
-    @Query('limit') limit = 10,
-    @Query('status') status?: string,
+    @Query() queryArgs: any, // this capture page, limit, sort, status, date, etc
   ) {
-    return this.appointmentService.getPatientAppointments(patientId, +page, +limit, status as any);
+    return this.appointmentService.getPatientAppointments(patientId, queryArgs);
   }
 
   @Post('cancel')
   @HttpCode(HttpStatus.OK)
-  cancel(@Body() dto: CancelAppointmentDto) {
-    return this.appointmentService.cancelAppointment(dto);
+  cancel(@Body() dto: CancelAppointmentDto, @Req() req: any) {
+    const role = req.user.role === 'user' ? 'patient' : req.user.role;
+    return this.appointmentService.cancelAppointment(dto, req.user.userId, role);
   }
 
   @Post('reschedule')
+  @UseGuards(RolesGuard)
+  @Roles([Role.ADMIN, Role.PROVIDER])
+
   @HttpCode(HttpStatus.OK)
-  reschedule(@Body() dto: RescheduleAppointmentDto) {
-    return this.appointmentService.rescheduleAppointment(dto);
+  reschedule(@Body() dto: RescheduleAppointmentDto, @Req() req: any) {
+    const role = req.user.role === 'user' ? 'patient' : req.user.role;
+    return this.appointmentService.rescheduleAppointment(dto, req.user.userId, role);
   }
 
   @Patch('status')
-  @Roles('provider', 'admin')
-  @UseGuards(RolesGuard)
-  updateStatus(@Body() dto: UpdateAppointmentStatusDto) {
-    return this.appointmentService.updateStatus(dto);
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles([Role.PROVIDER, Role.ADMIN])
+  updateStatus(@Body() dto: UpdateAppointmentStatusDto, @Req() req: any) {
+    const role = req.user.role === 'user' ? 'patient' : req.user.role;
+    return this.appointmentService.updateStatus(dto, req.user.userId, role);
   }
 
   @Patch('provider-notes')
-  @Roles('provider', 'admin')
   @UseGuards(RolesGuard)
+  @Roles([Role.ADMIN, Role.PROVIDER])
   addNotes(@Body() dto: ProviderNotesDto) {
     return this.appointmentService.addProviderNotes(dto);
   }
@@ -137,33 +171,49 @@ export class AppointmentController {
 // ─── Provider Schedule (Admin/Provider) ──────────────────────────────────────
 
 @Controller('schedules')
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('provider', 'admin')
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+@Roles([Role.PROVIDER, Role.ADMIN])
 export class ScheduleController {
   constructor(
     @InjectModel(ProviderSchedule.name)
     private scheduleModel: Model<ProviderScheduleDocument>,
     private slotGenerator: SlotGeneratorService,
-  ) {}
+  ) { }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async createSchedule(@Body() dto: CreateProviderScheduleDto) {
-    const schedule = await this.scheduleModel.create(dto);
+  async createSchedule(@Body() dto: CreateProviderScheduleDto, @Req() req: any) {
+    const providerId = req.user.userId;
+    const schedule = await this.scheduleModel.create({ ...dto, providerId });
     // Generate slots for next 30 days immediately
     const { DateTime } = await import('luxon');
     await this.slotGenerator.gerateSlotsForProvider(
-      dto.providerId,
+      providerId,
       DateTime.utc(),
       DateTime.utc().plus({ days: 30 }),
     );
     return schedule;
   }
 
-  @Get(':providerId')
-  getSchedule(@Param('providerId') providerId: string) {
-    return this.scheduleModel.findOne({ providerId }).lean();
+
+  @Get('mySchedule')
+  @UseGuards(AuthGuard('jwt')) // Make sure jwt strategy populates req.user
+  async getMySchedule(@Req() req: any) {
+    const providerId = req.user.userId; // e.g., "64b0f1..."
+    console.log(providerId);
+    return await this.scheduleModel.findOne({ providerId }).lean();
   }
+
+  @Get(':providerId')
+  async getSchedule(@Param('providerId') providerId: string) {
+    console.log(providerId);
+    return await this.scheduleModel.findOne({ providerId }).lean();
+  }
+
+
+
+
+  // get my schedule
 
   @Patch(':providerId')
   async updateSchedule(
@@ -186,7 +236,7 @@ export class ScheduleController {
   }
 
   @Post(':providerId/generate-slots')
-  @Roles('admin')
+  // @Roles('admin')
   async generateSlots(
     @Param('providerId') providerId: string,
     @Query('days') days = 30,
