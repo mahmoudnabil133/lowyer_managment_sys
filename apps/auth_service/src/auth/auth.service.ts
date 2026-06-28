@@ -8,15 +8,12 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { UserService } from '../user/user.service';
 import * as bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken';
-import { User, UserDocument } from '../user/user.schema';
 import { CreateUserDto } from '../user/dto/createUser.dto';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Model } from 'mongoose';
 import { RefreshDocument } from './refresh/refreshToken.model';
 import express from 'express';
-import ObjectId from 'mongodb';
 import * as crypto from 'crypto';
 import { MailerService } from '../nodemailer/nodemailer.service';
 import { ClientProxy } from '@nestjs/microservices';
@@ -30,18 +27,20 @@ export class AuthService {
     private readonly mailService: MailerService,
     @InjectModel('RefreshToken')
     private readonly refreshTokenModel: Model<RefreshDocument>,
-    @Inject('NOTIFICATION_SERVICE') private readonly notificationClient:ClientProxy,
-  ) {}
+    @Inject('NOTIFICATION_SERVICE') private readonly notificationClient: ClientProxy,
+  ) { }
 
   async login(
     body: { email: string; password: string },
     res: express.Response,
   ) {
     let user = await this.userService.findByEmail(body.email);
+
     if (!user || !(await bcrypt.compare(body.password, user.password))) {
       throw new HttpException('Invalid Credentials', HttpStatus.UNAUTHORIZED);
     }
-    return await  this.createAndSendToken(user._id, user.email, user.role, res);
+    console.log(`User logged in: ${user.email}`);
+    return await this.createAndSendToken(user._id, user.email, user.role, res);
   }
 
   async createAndSendToken(userId: any, email: string, role: string, res: express.Response) {
@@ -104,15 +103,15 @@ export class AuthService {
 
   async sendEmailVerificationCode(email: string) {
     const user = await this.userService.findByEmail(email);
-    if (!user)  throw new HttpException('Invalid Credentials', HttpStatus.UNAUTHORIZED);
+    if (!user) throw new HttpException('Invalid Credentials', HttpStatus.UNAUTHORIZED);
 
     const code = this.generateResetCode();
     const hashedCode = this.createHash(code);
     user.virificationCode = hashedCode;
-    user.virificationCodeExpires = new Date(Date.now() + 3 *60 *1000); // expires in 3 min
-    try{
-      await this.mailService.sendVerifyEmail({code, name: user.name, mail:user.email});
-    }catch(err){
+    user.virificationCodeExpires = new Date(Date.now() + 3 * 60 * 1000); // expires in 3 min
+    try {
+      await this.mailService.sendVerifyEmail({ code, name: user.name, mail: user.email });
+    } catch (err) {
       user.virificationCode = undefined;
       user.virificationCodeExpires = undefined;
       throw new HttpException('error in sending email', HttpStatus.UNAUTHORIZED);
@@ -120,29 +119,29 @@ export class AuthService {
     await user.save();
     return { msg: 'success, check verification code we sent to your email' };
   }
-  async sendPasswordResetCode(body: {email: string}) {
+  async sendPasswordResetCode(body: { email: string }) {
     const user = await this.userService.findByEmail(body.email);
-    if (!user)  throw new HttpException('Invalid Credentials', HttpStatus.UNAUTHORIZED);
+    if (!user) throw new HttpException('Invalid Credentials', HttpStatus.UNAUTHORIZED);
 
     const code = this.generateResetCode();
     const hashedCode = this.createHash(code);
     user.passwordResetCode = hashedCode;
-    user.passwordResetCodeExpiresIn = new Date(Date.now() + 3 *60 *1000); // expires in 3 min
-    try{
-      await this.mailService.sendChangingPasswordCode({code, name: user.name, mail:user.email});
-    }catch(err){
+    user.passwordResetCodeExpiresIn = new Date(Date.now() + 3 * 60 * 1000); // expires in 3 min
+    try {
+      await this.mailService.sendChangingPasswordCode({ code, name: user.name, mail: user.email });
+    } catch (err) {
       user.passwordResetCode = undefined;
       user.passwordResetCodeExpiresIn = undefined;
       throw new HttpException('error in sending email', HttpStatus.UNAUTHORIZED);
     }
     await user.save();
-    return {msg: 'success, check verification code we sent to your email' };
+    return { msg: 'success, check verification code we sent to your email' };
   }
 
-  async validateEmailVerificationCode(code: string){
-    console.log(code);    
+  async validateEmailVerificationCode(code: string) {
+    console.log(code);
     let user = await this.userService.findByEmailverificationCode(this.createHash(code));
-    if(!user)  throw new HttpException('Invalid code', HttpStatus.UNAUTHORIZED);
+    if (!user) throw new HttpException('Invalid code', HttpStatus.UNAUTHORIZED);
 
     user.isVerified = true;
     user.virificationCode = undefined;
@@ -152,7 +151,7 @@ export class AuthService {
   }
   async validatePasswordResetCode(code: string, password: string, res: express.Response) {
     let user = await this.userService.findByResetCode(this.createHash(code));
-    if(!user)  throw new HttpException('Invalid code', HttpStatus.UNAUTHORIZED);
+    if (!user) throw new HttpException('Invalid code', HttpStatus.UNAUTHORIZED);
 
     user.password = await bcrypt.hash(password, 12);
     user.passwordResetCode = undefined;
