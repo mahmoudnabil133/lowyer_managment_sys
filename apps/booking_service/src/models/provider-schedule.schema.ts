@@ -11,58 +11,65 @@ export enum DayOfWeek {
     Saturday = 6
 }
 
-@Schema({_id:false})
-export class TimeWindow{
-    @Prop({required:true, match: /^[0-2][0-9]:[0-5][0-9]$/})
+@Schema({ _id: false })
+export class TimeWindow {
+    @Prop({ required: true, match: /^[0-2][0-9]:[0-5][0-9]$/ })
     startTime: string;
 
-    @Prop({required:true, match: /^[0-2][0-9]:[0-5][0-9]$/})
+    @Prop({ required: true, match: /^[0-2][0-9]:[0-5][0-9]$/ })
     endTime: string;
 }
 
-@Schema({_id:false})
-export class DaySchedule{
-    @Prop({required:true, enum: DayOfWeek})
-    dayOfWeek:DayOfWeek;
+@Schema({ _id: false })
+export class DaySchedule {
+    @Prop({ type: Number, required: true, enum: DayOfWeek })
+    dayOfWeek: DayOfWeek;
 
-    @Prop({required:true})
+    @Prop({ required: true })
     isWorking: boolean;
 
-    @Prop({type: [TimeWindow], default: []})
+    @Prop({ type: [TimeWindow], default: [] })
     windows: TimeWindow[];
 }
 
-@Schema({timestamps:true, collection:'provider_schedules'})
-export class ProviderSchedule{
-    @Prop({required:true, type:Types.ObjectId, unique:true, index:true})
+@Schema({ timestamps: true, collection: 'provider_schedules' })
+export class ProviderSchedule {
+    @Prop({ required: true, type: Types.ObjectId, unique: true, index: true })
     providerId: Types.ObjectId; // docter/user
-    
-    @Prop({type: [DaySchedule], default: []})
+
+    @Prop({ type: [DaySchedule], default: [] })
     weeklySchedule: DaySchedule[];
 
-    @Prop({required:true, default:30})
-    slotDurationMinutes:number;
+    @Prop({ required: true, default: 30 })
+    slotDurationMinutes: number;
 
-    @Prop({required:true ,default:5 })
-    bufferMinutes:number;
+    @Prop({ required: true, default: 5 })
+    bufferMinutes: number;
 
-    @Prop({required:true, default:1})
-    maxConcurrentAppointments:number;
+    @Prop({ required: true, default: 1 })
+    maxConcurrentAppointments: number;
 
-    @Prop({required:true, default:14})
-    advanceBookingDays:number;
+    @Prop({ required: true, default: 14 })
+    advanceBookingDays: number;
 
-    @Prop({required:true, default:2})
-    minAdvenceBookingHours:number;
+    @Prop({ required: true, default: 2 })
+    minAdvanceBookingHours: number;
 
-    @Prop({type: [String], default: []})
+    @Prop({ type: [String], default: [] })
     blockDates: string[];
 
 
-    @Prop({required:true, default:'UTC'})
+
+    @Prop({ required: true, default: 1000 })
+    appointmentPrice: number;
+
+    @Prop({ required: true, default: 'EGP' })
+    currency: string;
+
+    @Prop({ required: true, default: 'UTC' })
     timezone: string;
 
-    @Prop({required:true, default:true})
+    @Prop({ required: true, default: true })
     isActive: boolean;
 }
 
