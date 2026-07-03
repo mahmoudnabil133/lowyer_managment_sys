@@ -39,6 +39,8 @@ import { APP_FILTER } from '@nestjs/core';
     ]),
 
     RmqModule.register({ name: 'NOTIFICATION_SERVICE', queue: 'notification_queue' }),
+    RmqModule.register({ name: 'PAYMENT_SERVICE', queue: 'payment_queue' }),
+
   ],
   controllers: [AppointmentController, AvailabilityController, ScheduleController],
   providers: [
