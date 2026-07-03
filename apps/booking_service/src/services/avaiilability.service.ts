@@ -39,7 +39,7 @@ export class AvailabilityService {
   }
 
   // return a clender style availability(monthly calender where each month has its own available slots)
-  async getAvailabilityRage(dto: GetAvailableRangeDto) {
+  async getAvailabilityRange(dto: GetAvailableRangeDto) {
     let now = new Date();
     const from = DateTime.fromISO(dto.fromDate); // converted type to DateTime
     const to = DateTime.fromISO(dto.toDate);
@@ -188,9 +188,9 @@ export class AvailabilityService {
     }
     // check min advance booking (ex: ptrvent last minute boooking)
     const hoursUntil = apptDt.diff(now, 'hours').hours;
-    if (hoursUntil < schedule.minAdvenceBookingHours) {
+    if (hoursUntil < schedule.minAdvanceBookingHours) {
       throw new BadRequestException(
-        `Appointments must be booked at least ${schedule.minAdvenceBookingHours} hours in advance`,
+        `Appointments must be booked at least ${schedule.minAdvanceBookingHours} hours in advance`,
       );
     }
 
@@ -201,6 +201,8 @@ export class AvailabilityService {
         `Appointments can only be booked up to ${schedule.advanceBookingDays} days in advance`,
       );
     }
+
+    return schedule;
   }
   //   // ─── Slot Status Management (Called by AppointmentService) ────────────
 
@@ -262,5 +264,9 @@ export class AvailabilityService {
     );
     if (session) updateQuery.session(session);
     await updateQuery;
+  }
+
+  findSlotById(id: string): Promise<TimeSlotDocument | null> {
+    return this.slotModel.findById(id).lean();
   }
 }
