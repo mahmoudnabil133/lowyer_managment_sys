@@ -34,6 +34,7 @@ import { DateTime } from 'luxon';
 import { ClientProxy } from '@nestjs/microservices';
 import { SlotStatus } from '../models/slot.schema';
 import { ApiFeatureService } from '@app/common';
+import { lastValueFrom } from 'rxjs';
 
 const ALLOWED_TRANSITIONS: Record<AppointmentStatus, AppointmentStatus[]> = {
   [AppointmentStatus.PENDING]: [
@@ -66,6 +67,8 @@ export class AppointmentService {
     @InjectConnection() private connection: Connection,
     private availabilityService: AvailabilityService,
     @Inject('NOTIFICATION_SERVICE') private readonly notificationClient: ClientProxy,
+    @Inject('PAYMENT_SERVICE') private readonly paymentClient: ClientProxy,
+
   ) { }
 
   // create appointment
@@ -83,9 +86,7 @@ export class AppointmentService {
    * */
 
   async bookAppointment(dto: BookAppointmentDto, patientId: string) {
-    const slot = await this.availabilityService['slotModel']
-      .findById(dto.slotId)
-      .lean();
+    const slot = await this.availabilityService.findSlotById(dto.slotId)
     if (!slot) {
       throw new NotFoundException('Slot not found');
     }
@@ -98,7 +99,7 @@ export class AppointmentService {
     if (!isHeldBySystem) {
       throw new ConflictException('Slot is no longer availablee');
     }
-    await this.availabilityService.validateProviderAvailability(
+    const schedule = await this.availabilityService.validateProviderAvailability(
       dto.providerId,
       slot.startTime,
     );
@@ -111,6 +112,9 @@ export class AppointmentService {
           [
             {
               bookingRef,
+              amount: schedule.appointmentPrice,
+              currency: schedule.currency,
+              isPaid: false,
               providerId: dto.providerId,
               slotId: dto.slotId,
               patient: {
@@ -151,23 +155,107 @@ export class AppointmentService {
           ],
           { session },
         );
-        await this.publishEvent('appointment.booked', {
-          appointmentId: appointment!._id,
-          bookingRef: appointment!.bookingRef,
-          providerId: dto.providerId,
-          patientId: patientId,
-          startTime: slot.startTime,
-          endTime: slot.endTime,
-          type: dto.type,
-        });
-
-        return appointment;
       });
     } finally {
       await session.endSession();
     }
+
+    try {
+      const paymentPayload = {
+        appointmentId: appointment._id.toString(),
+        bookingRef: appointment.bookingRef,
+        patientId: patientId,
+        providerId: dto.providerId,
+        amount: schedule.appointmentPrice,
+        currency: schedule.currency || 'EGP',
+        successUrl: dto.successUrl,
+        cancelUrl: dto.cancelUrl,
+      };
+
+      // NestJS ClientProxy uses .send() for request-response over RMQ
+      const response = await lastValueFrom(
+        this.paymentClient.send<{ url: string }>('payment.create_checkout', paymentPayload)
+      );
+      console.log(response);
+
+      // Return both the pending database entry and the checkout page redirection URL
+      return {
+        ...appointment.toObject(),
+        checkoutUrl: response.url,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to obtain checkout session link from Payment Service: ${error.message}`);
+      throw new BadRequestException('Payment initialization failed. Please try again.');
+    }    // await this.publishEvent('appointment.booked', {
+    //   appointmentId: appointment!._id,
+    //   bookingRef: appointment!.bookingRef,
+    //   providerId: dto.providerId,
+    //   patientId: patientId,
+    //   startTime: slot.startTime,
+    //   endTime: slot.endTime,
+    //   type: dto.type,
+    // });
+
+    // return appointment;
   }
 
+  // fulfillPaidAppointment
+
+  async fulfillPaidAppointment(payload: { appointmentId: string, bookingRef: string, paymentId: string, amount: number }) {
+    const session = await this.connection.startSession();
+
+    try {
+      await session.withTransaction(async () => {
+        const appointment = await this.appointmentModel
+          .findById(payload.appointmentId)
+          .session(session);
+
+        if (!appointment) {
+          this.logger.error(`Critical: Appointment ${payload.appointmentId} not found during fulfillment.`);
+          return;
+        }
+
+        // Safeguard against duplicate event deliveries
+        if (appointment.status === AppointmentStatus.CONFIRMED) {
+          this.logger.warn(`Appointment ${payload.bookingRef} is already marked as CONFIRMED.`);
+          return;
+        }
+
+        // Enforce clean state machine rules
+        this.assertTransition(appointment.status, AppointmentStatus.CONFIRMED);
+
+        // Mutate status variables
+        appointment.status = AppointmentStatus.CONFIRMED;
+        appointment.isPaid = true;
+        appointment.paymentId = new Types.ObjectId(payload.paymentId);
+        await appointment.save({ session });
+        await this.historyModel.create(
+          [
+            {
+              appointmentId: appointment._id,
+              providerId: appointment.providerId,
+              patientId: appointment.patient.patientId,
+              fromStatus: AppointmentStatus.PENDING,
+              toStatus: AppointmentStatus.CONFIRMED,
+              changedByUserId: appointment.patient.patientId,
+              changedByRole: 'system',
+              note: `Payment captured successfully. Confirmed via transaction tracking ref: ${payload.bookingRef}`,
+            },
+          ],
+          { session },
+        );
+        const confirmedAppt = await this.appointmentModel.findById(payload.appointmentId).lean();
+        if (confirmedAppt) {
+          await this.publishEvent('appointment.booked', confirmedAppt);
+        }
+      });
+    } catch (error) {
+      this.logger.error(`Failed to confirm appointment ${payload.appointmentId}: ${error.message}`);
+      throw error;
+    } finally {
+      await session.endSession();
+    }
+  }
   // cancell appointment
   /*
    *
@@ -226,21 +314,21 @@ export class AppointmentService {
           ],
           { session },
         );
-        await this.publishEvent('appointment.cancelled', {
-          appointmentId: appointment._id,
-          bookingRef: appointment.bookingRef,
-          providerId: appointment.providerId,
-          patientId: appointment.patient.patientId,
-          reason: dto.reason,
-          cancelledByRole: cancelledByRole,
-          startTime: appointment.startTime,
-          refundRequired: appointment.isPaid,
-        });
-        return appointment;
       });
     } finally {
       await session.endSession();
     }
+    await this.publishEvent('appointment.cancelled', {
+      appointmentId: appointment._id,
+      bookingRef: appointment.bookingRef,
+      providerId: appointment.providerId,
+      patientId: appointment.patient.patientId,
+      reason: dto.reason,
+      cancelledByRole: cancelledByRole,
+      startTime: appointment.startTime,
+      refundRequired: appointment.isPaid,
+    });
+    return appointment;
 
   }
 
@@ -270,7 +358,7 @@ export class AppointmentService {
     if (appointment.slotId.toString() === dto.newSlotId) {
       throw new BadRequestException('new slot is same as old slot');
     }
-    const slot = await this.availabilityService['slotModel'].findById(
+    const slot = await this.availabilityService.findSlotById(
       dto.newSlotId,
     );
     if (!slot) {
@@ -339,19 +427,20 @@ export class AppointmentService {
           ],
           { session },
         );
-        await this.publishEvent('appointment.rescheduled', {
-          oldAppointmentId: appointment._id,
-          newAppointmentId: newAppointment!._id,
-          newBookingRef: newAppointment!.bookingRef,
-          providerId: appointment.providerId,
-          patientId: appointment.patient.patientId,
-          oldStartTime: appointment.startTime,
-          newStartTime: slot.startTime,
-        });
       });
     } finally {
       await session.endSession();
     }
+
+    await this.publishEvent('appointment.rescheduled', {
+      oldAppointmentId: appointment._id,
+      newAppointmentId: newAppointment!._id,
+      newBookingRef: newAppointment!.bookingRef,
+      providerId: appointment.providerId,
+      patientId: appointment.patient.patientId,
+      oldStartTime: appointment.startTime,
+      newStartTime: slot.startTime,
+    });
 
     return appointment;
   }
