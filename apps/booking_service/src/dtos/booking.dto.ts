@@ -12,6 +12,8 @@ import {
   Matches,
   ValidateNested,
   ArrayMinSize,
+  IsUrl,
+  IsNotEmpty,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { AppointmentType } from '../models/appointment.schema';
@@ -155,6 +157,15 @@ export class HoldSlotDto {
 
 // Remove patientId from BookAppointmentDto
 export class BookAppointmentDto {
+
+  @IsUrl()
+  @IsNotEmpty()
+  successUrl: string;
+
+  @IsUrl()
+  @IsNotEmpty()
+  cancelUrl: string;
+
   @IsMongoId()
   slotId: string;
 
