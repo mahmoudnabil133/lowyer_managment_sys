@@ -136,11 +136,11 @@ export class SlotGeneratorService {
     return slots;
   }
   async releaseExpiredHolds(): Promise<number> {
-    const res = await this.slotModel.updateMany({ status: SlotStatus.HOLD, holdExpiresAt: { $lt: new Date() } }, {
+    const res = await this.slotModel.updateMany({ status: SlotStatus.HOLD, heldExpireDate: { $lt: new Date() } }, {
       $set: {
         status: SlotStatus.AVAILABLE,
-        holdExpiresAt: null,
-        heldByPatientId: null,
+        heldExpireDate: null,
+        holdBy: null,
         appointmentId: null,
       },
     },
