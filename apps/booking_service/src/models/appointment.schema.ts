@@ -136,7 +136,9 @@ export class Appointment {
   @Prop({ default: 'EGP' })
   currency: string;
 
-  // reminder tracking
+  @Prop({ type: Number, default: 0 })
+  amount: number; // The consultation fee locked at the moment of booking
+
   @Prop({ default: false })
   reminder24hSent: boolean;
 
