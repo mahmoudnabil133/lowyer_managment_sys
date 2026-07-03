@@ -32,6 +32,7 @@ import { Model, Types } from 'mongoose';
 import { ProviderSchedule, ProviderScheduleDocument } from './models/provider-schedule.schema';
 import { AuthGuard } from '@nestjs/passport';
 import { Role, Roles, RolesGuard } from '@app/common';
+import { EventPattern, Payload } from '@nestjs/microservices';
 
 // ─── Availability ─────────────────────────────────────────────────────────────
 
@@ -47,7 +48,7 @@ export class AvailabilityController {
 
   @Get('range')
   getRange(@Query() dto: GetAvailableRangeDto) {
-    return this.availabilityService.getAvailabilityRage(dto);
+    return this.availabilityService.getAvailabilityRange(dto);
   }
 
   @Post('hold/:slotId')
@@ -70,11 +71,21 @@ export class AvailabilityController {
 // ─── Appointments ─────────────────────────────────────────────────────────────
 
 @Controller('appointments')
-@UseGuards(AuthGuard('jwt'))
 export class AppointmentController {
   constructor(private readonly appointmentService: AppointmentService) { }
 
+  @EventPattern('payment.succeeded')
+  async handlePaymentSucceeded(@Payload() data: {
+    appointmentId: string;
+    bookingRef: string;
+    paymentId: string;
+    amount: number;
+  }) {
+    console.log('payment.succeeded event calleed');
+    await this.appointmentService.fulfillPaidAppointment(data);
+  }
   @Post()
+  @UseGuards(AuthGuard('jwt'))
   @HttpCode(HttpStatus.CREATED)
   async book(@Body() dto: BookAppointmentDto, @Req() req: any) {
     const patientId = req.user.userId;
@@ -86,6 +97,7 @@ export class AppointmentController {
  */
 
   @Get('my-appointments')
+  @UseGuards(AuthGuard('jwt'))
   async getMyAppointments(
     @Req() req: any,
     @Query() queryArgs: any, // this capture page, limit, sort, status, date, etc
@@ -108,6 +120,8 @@ export class AppointmentController {
   }
 
   @Get(':id/history')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles([Role.ADMIN])
   async getHistory(@Param('id') id: string) {
     return await this.appointmentService.getAppointmentHistory(id);
   }
@@ -128,6 +142,7 @@ export class AppointmentController {
   }
 
   @Get('patient/:patientId')
+  @UseGuards(AuthGuard('jwt'))
   getPatientAppointments(
     @Param('patientId') patientId: string,
     @Query() queryArgs: any, // this capture page, limit, sort, status, date, etc
@@ -136,6 +151,7 @@ export class AppointmentController {
   }
 
   @Post('cancel')
+  @UseGuards(AuthGuard('jwt'))
   @HttpCode(HttpStatus.OK)
   cancel(@Body() dto: CancelAppointmentDto, @Req() req: any) {
     const role = req.user.role === 'user' ? 'patient' : req.user.role;
@@ -143,7 +159,7 @@ export class AppointmentController {
   }
 
   @Post('reschedule')
-  @UseGuards(RolesGuard)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles([Role.ADMIN, Role.PROVIDER])
 
   @HttpCode(HttpStatus.OK)
@@ -161,7 +177,7 @@ export class AppointmentController {
   }
 
   @Patch('provider-notes')
-  @UseGuards(RolesGuard)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles([Role.ADMIN, Role.PROVIDER])
   addNotes(@Body() dto: ProviderNotesDto) {
     return this.appointmentService.addProviderNotes(dto);
