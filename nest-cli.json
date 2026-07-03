@@ -46,6 +46,15 @@
         "tsConfigPath": "apps/notification_service/tsconfig.app.json"
       }
     },
+    "payment_service": {
+      "type": "application",
+      "root": "apps/payment_service",
+      "entryFile": "main",
+      "sourceRoot": "apps/payment_service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/payment_service/tsconfig.app.json"
+      }
+    },
     "rmq": {
       "type": "library",
       "root": "libs/rmq",
