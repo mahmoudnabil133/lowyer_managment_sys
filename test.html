@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking System – Enterprise Roadmap</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #e2e8f0;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background: #1e293b;
+            border-right: 1px solid #334155;
+            padding: 2rem 1.5rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            overflow-y: auto;
+        }
+
+        .sidebar h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #10b981;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .sidebar nav a {
+            display: block;
+            padding: 0.6rem 0.8rem;
+            margin: 0.2rem 0;
+            border-radius: 6px;
+            color: #94a3b8;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .sidebar nav a:hover,
+        .sidebar nav a.active {
+            background: #334155;
+            color: #e2e8f0;
+        }
+
+        /* Main content */
+        .main {
+            margin-left: 260px;
+            padding: 2.5rem 3rem;
+            width: 100%;
+        }
+
+        .section {
+            margin-bottom: 3.5rem;
+        }
+
+        .section h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #10b981;
+            border-bottom: 2px solid #334155;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.8rem;
+        }
+
+        .phase {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 1.8rem 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid #334155;
+        }
+
+        .phase h3 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #6366f1;
+            margin-bottom: 1rem;
+        }
+
+        .step {
+            margin: 1.2rem 0;
+            padding-left: 1.2rem;
+            border-left: 3px solid #334155;
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            margin-bottom: 0.6rem;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.15rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-critical {
+            background: #dc2626;
+            color: white;
+        }
+
+        .badge-important {
+            background: #f59e0b;
+            color: #0f172a;
+        }
+
+        .badge-planned {
+            background: #6366f1;
+            color: white;
+        }
+
+        .badge-done {
+            background: #10b981;
+            color: white;
+        }
+
+        .code-block {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 0.8rem 0;
+            position: relative;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            background: #1e293b;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+
+        .copy-btn:hover {
+            background: #334155;
+            color: white;
+        }
+
+        pre {
+            margin: 0;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+
+            .main {
+                margin-left: 0;
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <aside class="sidebar">
+        <h2>🚀 Roadmap</h2>
+        <nav id="nav">
+            <a href="#phase1">1. Code Hardening</a>
+            <a href="#phase2">2. Microservices & AI</a>
+            <a href="#phase3">3. Containerization & Deploy</a>
+        </nav>
+    </aside>
+    <main class="main">
+        <section class="section" id="phase1">
+            <h2>Phase 1: Code Enhancements & Hardening</h2>
+            <div class="phase">
+                <h3>1.1 Transaction Safeguards</h3>
+                <div class="step">
+                    <div class="step-header">
+                        <span class="badge badge-critical">Critical</span>
+                        <strong>Compensating Saga for Payment Failures</strong>
+                    </div>
+                    <p>After <code>bookAppointment</code> transaction commit, emit
+                        <code>appointment.pending_payment</code>. A saga orchestrator or the payment service itself
+                        schedules a cancellation if no success event arrives within X minutes.</p>
+                    <div class="code-block">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code>// In AppointmentService.bookAppointment (after session.endSession())
+await this.publishEvent('appointment.pending_payment', {
+  appointmentId: appointment._id,
+  bookingRef: appointment.bookingRef,
+  timestamp: new Date(),
+});</code></pre>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-header">
+                        <span class="badge badge-critical">Critical</span>
+                        <strong>Idempotent Payment Fulfillment</strong>
+                    </div>
+                    <p>Store <code>eventId</code> from the payment webhook in a new <code>ProcessedPaymentEvent</code>
+                        collection. Check it before processing.</p>
+                </div>
+                <div class="step">
+                    <div class="step-header">
+                        <span class="badge badge-important">Important</span>
+                        <strong>Optimistic Locking with <code>version</code></strong>
+                    </div>
+                    <p>Add <code>version: Number</code> to Appointment schema. In <code>fulfillPaidAppointment</code>
+                        use <code>$inc: { version: 1 }</code> and fail if version mismatch.</p>
+                </div>
+            </div>
+
+            <div class="phase">
+                <h3>1.2 State Machine Enhancements</h3>
+                <div class="step">
+                    <span class="badge badge-important">Refine Transitions</span>
+                    <div class="code-block">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code>const ALLOWED_TRANSITIONS = {
+  [AppointmentStatus.PENDING]: [CONFIRMED, CANCELLED],
+  [AppointmentStatus.CONFIRMED]: [CHECKED_IN, NO_SHOW, CANCELLED, RESCHEDULED],
+  [AppointmentStatus.NO_SHOW]: [CANCELLED],   // new
+  // ... rest unchanged
+};</code></pre>
+                    </div>
+                </div>
+                <div class="step">
+                    <span class="badge badge-planned">Automated Refund on Cancel</span>
+                    <p>When <code>cancelAppointment</code> is called with <code>isPaid: true</code>, emit
+                        <code>refund.process</code> and set <code>refundIssued: true</code> only after confirmation.</p>
+                </div>
+            </div>
+
+            <div class="phase">
+                <h3>1.3 Indexing & Query Performance</h3>
+                <div class="step">
+                    <span class="badge badge-planned">Recommended Indexes</span>
+                    <div class="code-block">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code>// Appointment collection
+db.appointments.createIndex({ providerId: 1, startTime: 1, status: 1 });
+db.appointments.createIndex({ 'patient.patientId': 1, startTime: 1 });
+// TimeSlot collection
+db.timeslots.createIndex({ providerId: 1, date: 1, status: 1, startTime: 1 });
+// AppointmentHistory
+db.appointmenthistories.createIndex({ appointmentId: 1 });</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="phase">
+                <h3>1.4 Event Contract Standardization</h3>
+                <p>All events follow a uniform envelope:</p>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <pre><code>{
+  "eventId": "uuid",
+  "eventType": "appointment.booked",
+  "timestamp": "2026-07-07T10:30:00Z",
+  "version": "1.0",
+  "payload": { ... }
+}</code></pre>
+                </div>
+            </div>
+        </section>
+
+        <section class="section" id="phase2">
+            <h2>Phase 2: Microservices Architecture & AI Integration</h2>
+            <div class="phase">
+                <h3>2.1 Dedicated Notification Service</h3>
+                <div class="step">
+                    <span class="badge badge-planned">New NestJS Microservice</span>
+                    <p>Listens on <code>notification_queue</code>. Handles appointment reminders, cancellation alerts,
+                        payment receipts.</p>
+                    <div class="code-block">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code>// main.ts
+const app = await NestFactory.create(NotificationModule);
+app.connectMicroservice(rmqService.getOptions('notification_queue'));
+await app.startAllMicroservices();
+await app.listen(3005);</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="phase">
+                <h3>2.2 AI-Analytics Service (Python FastAPI)</h3>
+                <div class="step">
+                    <span class="badge badge-planned">Blueprint</span>
+                    <ul style="margin-left:1.5rem; line-height:1.6">
+                        <li>Consume <code>appointment.booked</code> → store chiefComplaint for training.</li>
+                        <li>Consume <code>appointment.completed</code> → run summarisation via GPT/OpenAI.</li>
+                        <li>Train XGBoost model to predict actual duration from complaint, specialty, and provider.</li>
+                        <li>Expose REST: <code>GET /analytics/summary/:appointmentId</code>,
+                            <code>GET /analytics/predict-duration</code>.</li>
+                    </ul>
+                    <div class="code-block">
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre><code># ai_analytics/main.py
+@app.on_event("startup")
+async def startup():
+    await rabbit.connect()
+    await rabbit.subscribe("appointment.*", handle_event)</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="phase">
+                <h3>2.3 Event-Driven Contracts (Key Events)</h3>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <pre><code>// appointment.booked
+{
+  "eventId": "c1b...",
+  "eventType": "appointment.booked",
+  "payload": {
+    "appointmentId": "666...",
+    "bookingRef": "APT-20260707-ABCD",
+    "providerId": "...",
+    "startTime": "2026-07-07T10:00:00Z",
+    "chiefComplaint": "cough"
+  }
+}
+
+// payment.succeeded
+{
+  "eventId": "...",
+  "eventType": "payment.succeeded",
+  "payload": {
+    "appointmentId": "...",
+    "bookingRef": "...",
+    "paymentId": "...",
+    "amount": 500
+  }
+}</code></pre>
+                </div>
+            </div>
+        </section>
+
+        <section class="section" id="phase3">
+            <h2>Phase 3: Containerization & Production Deployment</h2>
+            <div class="phase">
+                <h3>3.1 Multi-Stage Dockerfile (Booking Service)</h3>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <pre><code># booking.Dockerfile
+FROM node:18-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production && cp -R node_modules prod_modules
+RUN npm ci
+COPY . .
+RUN npm run build booking-service
+
+FROM node:18-alpine
+WORKDIR /app
+COPY --from=builder /app/dist/apps/booking-service ./dist
+COPY --from=builder /app/prod_modules ./node_modules
+CMD ["node", "dist/main.js"]</code></pre>
+                </div>
+            </div>
+            <div class="phase">
+                <h3>3.2 docker-compose.yml (full stack)</h3>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <pre><code>version: '3.8'
+services:
+  mongodb:
+    image: mongo:7
+    command: --replSet rs0
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh --quiet
+    ports:
+      - "27017:27017"
+  rabbitmq:
+    image: rabbitmq:3-management
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+  gateway:
+    build: ./apps/api-gateway
+    env_file: .env.gateway
+    ports:
+      - "3010:3010"
+    depends_on:
+      - rabbitmq
+  booking-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.booking
+    env_file: .env.booking
+    depends_on:
+      - mongodb
+      - rabbitmq
+  payment-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.payment
+    env_file: .env.payment
+    depends_on:
+      - mongodb
+      - rabbitmq
+  notification-service:
+    build: ./apps/notification-service
+    depends_on:
+      - rabbitmq
+volumes:
+  mongo-data:</code></pre>
+                </div>
+            </div>
+            <div class="phase">
+                <h3>3.3 MongoDB Replica Set Init Script</h3>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <pre><code>// init-replica.js
+rs.initiate({
+  _id: "rs0",
+  members: [{ _id: 0, host: "mongodb:27017" }]
+});</code></pre>
+                </div>
+                <p>Run after container start with <code>docker exec -it mongodb mongosh /init-replica.js</code> or via a
+                    dedicated init container.</p>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // Copy-to-clipboard functionality
+        function copyCode(btn) {
+            const block = btn.parentElement;
+            const code = block.querySelector('pre').innerText;
+            navigator.clipboard.writeText(code).then(() => {
+                btn.textContent = 'Copied!';
+                setTimeout(() => btn.textContent = 'Copy', 1500);
+            });
+        }
+        // Simple active nav highlight
+        const sections = document.querySelectorAll('.section');
+        const navLinks = document.querySelectorAll('#nav a');
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop - 100;
+                if (pageYOffset >= sectionTop) current = section.getAttribute('id');
+            });
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) link.classList.add('active');
+            });
+        });
+    </script>
+</body>
+
+</html>

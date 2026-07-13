@@ -1,0 +1,1621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lawyer Management System — Implementation Plan</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    /* ═══════════════════════════════════════
+       CSS CUSTOM PROPERTIES — THEMING
+       ═══════════════════════════════════════ */
+    :root {
+      --bg: #F7F5F0;
+      --surface: #FFFFFF;
+      --surface-hover: #FAFAFA;
+      --text: #2C2C2C;
+      --text-muted: #6B7280;
+      --text-soft: #9CA3AF;
+      --border: #EEE8DD;
+      --border-light: #E8E3D8;
+      --navy: #1B2A4A;
+      --navy-light: #2C3E6B;
+      --gold: #C5A55A;
+      --gold-light: #E8D5A0;
+      --gold-bg: rgba(197,165,90,0.08);
+      --gold-glow: rgba(197,165,90,0.15);
+      --goal-bg: #FFF9E8;
+      --goal-text: #5A4A2A;
+      --card-shadow: rgba(27,42,74,0.06);
+      --card-shadow-hover: rgba(27,42,74,0.12);
+      --code-bg: #F0EDE8;
+      --hero-from: #1B2A4A;
+      --hero-to: #2C3E6B;
+      --toc-shadow: rgba(27,42,74,0.08);
+      --arch-bg: #1B2A4A;
+      --arch-text: #D8D4CC;
+      --timeline-card-border: #C5A55A;
+      --table-stripe: #F7F5F0;
+      --toggle-bg: #E8E3D8;
+      --scrollbar: #D0CBC2;
+      --scrollbar-hover: #B0A89A;
+      --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    [data-theme="dark"] {
+      --bg: #0D1B2A;
+      --surface: #1B2A4A;
+      --surface-hover: #1F3055;
+      --text: #E8E3D8;
+      --text-muted: #9CA3AF;
+      --text-soft: #6B7280;
+      --border: rgba(197,165,90,0.12);
+      --border-light: rgba(197,165,90,0.08);
+      --navy: #0D1B2A;
+      --navy-light: #1B2A4A;
+      --gold: #C5A55A;
+      --gold-light: #E8D5A0;
+      --gold-bg: rgba(197,165,90,0.06);
+      --gold-glow: rgba(197,165,90,0.1);
+      --goal-bg: rgba(197,165,90,0.08);
+      --goal-text: #E8D5A0;
+      --card-shadow: rgba(0,0,0,0.2);
+      --card-shadow-hover: rgba(0,0,0,0.35);
+      --code-bg: #0F1D30;
+      --hero-from: #07101E;
+      --hero-to: #0F1D30;
+      --toc-shadow: rgba(0,0,0,0.25);
+      --arch-bg: #07101E;
+      --arch-text: #9CA3AF;
+      --timeline-card-border: #C5A55A;
+      --table-stripe: rgba(197,165,90,0.04);
+      --toggle-bg: #2C3E6B;
+      --scrollbar: #2C3E6B;
+      --scrollbar-hover: #3D4F75;
+      --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      padding: 0;
+      transition: background var(--transition), color var(--transition);
+    }
+
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-hover); }
+
+    /* ─── Dark Mode Toggle ─── */
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: none;
+      background: var(--surface);
+      color: var(--gold);
+      font-size: 20px;
+      cursor: pointer;
+      box-shadow: 0 2px 16px var(--card-shadow);
+      transition: all var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--border);
+    }
+    .theme-toggle:hover {
+      transform: scale(1.1);
+      box-shadow: 0 4px 24px var(--gold-glow);
+    }
+    .theme-toggle .icon-sun { display: inline; }
+    .theme-toggle .icon-moon { display: none; }
+    [data-theme="dark"] .theme-toggle .icon-sun { display: none; }
+    [data-theme="dark"] .theme-toggle .icon-moon { display: inline; }
+
+    /* ─── Scroll Progress Bar ─── */
+    .progress-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--gold), var(--gold-light));
+      z-index: 999;
+      width: 0%;
+      transition: width 0.1s linear;
+    }
+
+    /* ─── Hero ─── */
+    .hero {
+      background: linear-gradient(135deg, var(--hero-from) 0%, var(--hero-to) 100%);
+      color: #fff;
+      padding: 80px 40px 60px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      transition: background var(--transition);
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle at 30% 50%, rgba(197,165,90,0.04) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 6px;
+      background: linear-gradient(90deg, var(--gold), var(--gold-light), var(--gold));
+    }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(197,165,90,0.15);
+      border: 1px solid rgba(197,165,90,0.3);
+      color: var(--gold-light);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 6px 20px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+      animation: fadeInDown 0.8s ease;
+    }
+    .hero h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(32px, 5vw, 56px);
+      font-weight: 700;
+      margin-bottom: 12px;
+      line-height: 1.2;
+      animation: fadeInUp 0.8s ease 0.1s both;
+    }
+    .hero h1 i { color: var(--gold); }
+    .hero p {
+      font-size: 18px;
+      opacity: 0.85;
+      max-width: 680px;
+      margin: 0 auto 24px;
+      animation: fadeInUp 0.8s ease 0.2s both;
+    }
+    .hero-meta {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      flex-wrap: wrap;
+      font-size: 14px;
+      opacity: 0.75;
+      animation: fadeInUp 0.8s ease 0.3s both;
+    }
+    .hero-meta span i { margin-right: 6px; color: var(--gold); }
+
+    /* ─── Container ─── */
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ─── TOC ─── */
+    .toc {
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 32px 40px;
+      margin: -40px auto 40px;
+      max-width: 900px;
+      box-shadow: 0 4px 24px var(--toc-shadow);
+      position: relative;
+      z-index: 2;
+      transition: background var(--transition), box-shadow var(--transition);
+      border: 1px solid var(--border);
+    }
+    .toc h2 {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--gold);
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+    .toc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 8px;
+    }
+    .toc-grid a {
+      color: var(--text);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 6px 0;
+      transition: color var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .toc-grid a:hover { color: var(--gold); }
+    .toc-grid a .phase-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px; height: 24px;
+      border-radius: 6px;
+      background: var(--navy);
+      color: var(--gold);
+      font-size: 12px;
+      font-weight: 700;
+      flex-shrink: 0;
+      transition: background var(--transition);
+    }
+
+    /* ─── Phase Sections ─── */
+    .phase {
+      margin-bottom: 48px;
+      animation: fadeInUp 0.6s ease both;
+    }
+    .phase-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid var(--border-light);
+      transition: border-color var(--transition);
+    }
+    .phase-icon {
+      width: 52px; height: 52px;
+      border-radius: 14px;
+      background: var(--navy);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: var(--gold);
+      flex-shrink: 0;
+      transition: background var(--transition);
+    }
+    .phase-title-group h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text);
+      transition: color var(--transition);
+    }
+    .phase-title-group .phase-subtitle {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+    .phase-goal {
+      background: var(--goal-bg);
+      border-left: 4px solid var(--gold);
+      padding: 14px 20px;
+      border-radius: 0 10px 10px 0;
+      font-size: 15px;
+      color: var(--goal-text);
+      margin-bottom: 28px;
+      transition: background var(--transition), color var(--transition);
+    }
+    .phase-goal i { margin-right: 8px; color: var(--gold); }
+
+    /* ─── Task Card ─── */
+    .task-card {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 24px 28px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 12px var(--card-shadow);
+      border: 1px solid var(--border);
+      transition: all var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+    .task-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 3px;
+      height: 0;
+      background: linear-gradient(180deg, var(--gold), transparent);
+      transition: height 0.4s ease;
+    }
+    .task-card:hover::before { height: 100%; }
+    .task-card:hover {
+      box-shadow: 0 4px 24px var(--card-shadow-hover);
+      transform: translateY(-2px);
+      border-color: var(--gold-glow);
+    }
+    .task-card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .task-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      background: var(--navy);
+      color: var(--gold);
+      font-weight: 700;
+      font-size: 14px;
+      flex-shrink: 0;
+      transition: background var(--transition);
+    }
+    .task-card-header h3 {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text);
+      transition: color var(--transition);
+    }
+    .task-card-header h3 i { color: var(--gold); margin-right: 6px; }
+    .task-card p {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+    }
+
+    /* ─── Tables ─── */
+    .table-wrap {
+      overflow-x: auto;
+      margin-top: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    thead th {
+      background: var(--navy);
+      color: var(--gold-light);
+      font-weight: 600;
+      text-align: left;
+      padding: 10px 14px;
+      font-size: 13px;
+      letter-spacing: 0.3px;
+      transition: background var(--transition);
+    }
+    thead th:first-child { border-radius: 8px 0 0 0; }
+    thead th:last-child { border-radius: 0 8px 0 0; }
+    tbody td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      transition: border-color var(--transition);
+    }
+    tbody tr:hover { background: var(--table-stripe); }
+    code {
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 13px;
+      background: var(--code-bg);
+      color: var(--gold);
+      padding: 2px 8px;
+      border-radius: 5px;
+      transition: background var(--transition);
+      border: 1px solid var(--border);
+    }
+
+    /* ─── Schema Table ─── */
+    .schema-table { font-size: 13px; }
+    .schema-table th { background: var(--navy-light); }
+
+    /* ─── Checklist ─── */
+    .checklist { list-style: none; padding: 0; }
+    .checklist li {
+      padding: 7px 0;
+      font-size: 14px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      transition: color var(--transition);
+    }
+    .checklist li::before {
+      content: '\f0c8';
+      font-family: 'Font Awesome 6 Free';
+      font-weight: 400;
+      color: var(--gold);
+      font-size: 14px;
+      margin-top: 2px;
+    }
+
+    /* ─── Architecture Diagram ─── */
+    .arch-section {
+      background: var(--arch-bg);
+      border-radius: 16px;
+      padding: 36px 32px;
+      margin: 40px 0;
+      color: #fff;
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      transition: background var(--transition);
+    }
+    .arch-section h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px;
+      margin-bottom: 20px;
+      color: #fff;
+    }
+    .arch-section h2 i { color: var(--gold); margin-right: 10px; }
+    .arch-diagram {
+      font-size: 14px;
+      line-height: 1.8;
+      white-space: pre;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      color: var(--arch-text);
+    }
+    .arch-diagram .hl { color: var(--gold); font-weight: 600; }
+
+    /* ─── Timeline ─── */
+    .timeline-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .timeline-card {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 20px;
+      border-left: 4px solid var(--timeline-card-border);
+      box-shadow: 0 2px 10px var(--card-shadow);
+      transition: all var(--transition);
+      border: 1px solid var(--border);
+      border-left-width: 4px;
+    }
+    .timeline-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px var(--card-shadow-hover);
+    }
+    .timeline-card .phase-name {
+      font-weight: 700;
+      color: var(--text);
+      font-size: 15px;
+      transition: color var(--transition);
+    }
+    .timeline-card .phase-dur {
+      display: inline-block;
+      margin-top: 6px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .timeline-card .phase-dur i { margin-right: 4px; color: var(--gold); }
+    .timeline-card .phase-para {
+      font-size: 13px;
+      color: var(--text-soft);
+      margin-top: 4px;
+    }
+
+    .parallel-box {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 24px;
+      margin-top: 20px;
+      box-shadow: 0 2px 12px var(--card-shadow);
+      border: 1px solid var(--border);
+      transition: all var(--transition);
+    }
+    .parallel-box h3 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+      transition: color var(--transition);
+    }
+    .parallel-box h3 i { color: var(--gold); margin-right: 8px; }
+    .parallel-box ol {
+      padding-left: 20px;
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 2;
+    }
+    .parallel-box p {
+      margin-top: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    /* ─── Code Block ─── */
+    .code-block {
+      background: var(--arch-bg);
+      color: var(--arch-text);
+      padding: 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      overflow-x: auto;
+      line-height: 1.6;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      border: 1px solid var(--border);
+      transition: background var(--transition);
+    }
+    .code-block .kw { color: var(--gold); }
+
+    /* ─── Footer ─── */
+    .footer {
+      text-align: center;
+      padding: 40px 24px;
+      color: var(--text-soft);
+      font-size: 13px;
+      border-top: 1px solid var(--border-light);
+      margin-top: 20px;
+      transition: border-color var(--transition), color var(--transition);
+    }
+
+    /* ─── Animations ─── */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ─── Responsive ─── */
+    @media (max-width: 768px) {
+      .hero { padding: 48px 20px 40px; }
+      .toc { margin: -30px 12px 30px; padding: 24px; }
+      .task-card { padding: 18px; }
+      .phase-header { flex-wrap: wrap; }
+      .arch-section { padding: 24px 16px; }
+      .arch-diagram { font-size: 11px; }
+      .theme-toggle { top: 12px; right: 12px; width: 40px; height: 40px; font-size: 16px; }
+      .hero-meta { gap: 20px; }
+    }
+
+    @media (max-width: 480px) {
+      .toc-grid { grid-template-columns: 1fr; }
+      .timeline-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+  <i class="fas fa-sun icon-sun"></i>
+  <i class="fas fa-moon icon-moon"></i>
+</button>
+
+<!-- ═══ HERO ═══ -->
+<header class="hero">
+  <div class="hero-badge"><i class="fas fa-gavel"></i>&ensp;Implementation Roadmap</div>
+  <h1><i class="fas fa-balance-scale"></i> Lawyer Management System</h1>
+  <p>A phased plan to complete existing services, build 4 new microservices, containerize, and deploy with CI/CD.</p>
+  <div class="hero-meta">
+    <span><i class="fas fa-layer-group"></i> 6 Phases</span>
+    <span><i class="fas fa-microchip"></i> 9 Microservices</span>
+    <span><i class="fas fa-calendar-alt"></i> ~50 Days (parallelized)</span>
+    <span><i class="fas fa-tools"></i> 39 Tasks</span>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- ═══ TOC ═══ -->
+  <nav class="toc">
+    <h2><i class="fas fa-list"></i> Table of Contents</h2>
+    <div class="toc-grid">
+      <a href="#phase0"><span class="phase-num">0</span> Foundation &amp; Notifications</a>
+      <a href="#phase1"><span class="phase-num">1</span> Provider Service</a>
+      <a href="#phase2"><span class="phase-num">2</span> AI Agents Service</a>
+      <a href="#phase3"><span class="phase-num">3</span> Document Service</a>
+      <a href="#phase4"><span class="phase-num">4</span> Analytics Service</a>
+      <a href="#phase5"><span class="phase-num">5</span> DevOps &amp; Deployment</a>
+      <a href="#architecture"><span class="phase-num">A</span> Architecture</a>
+      <a href="#timeline"><span class="phase-num">T</span> Timeline</a>
+    </div>
+  </nav>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- PHASE 0 -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <section class="phase" id="phase0">
+    <div class="phase-header">
+      <div class="phase-icon"><i class="fas fa-tools"></i></div>
+      <div class="phase-title-group">
+        <h2>Phase 0 — Foundation &amp; Notification Service</h2>
+        <div class="phase-subtitle"><i class="fas fa-clock"></i> Est. ~11 days &middot; Sequential</div>
+      </div>
+    </div>
+    <div class="phase-goal">
+      <i class="fas fa-bullseye"></i> <strong>Goal:</strong> Make the notification service fully functional (email + SMS) and fix existing issues.
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">0.1</span>
+        <h3><i class="fas fa-envelope"></i> Wire MailerService to RMQ Handlers</h3>
+      </div>
+      <p>Connect the existing <code>MailerService</code> to the notification event handlers so actual emails are sent.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Step</th><th>Action</th><th>File(s)</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Inject <code>MailerService</code> into <code>NotificationServiceController</code></td><td><code>notification.controller.ts</code></td></tr>
+            <tr><td>2</td><td>Handle <code>@EventPattern('user_created')</code> — send welcome email</td><td>same</td></tr>
+            <tr><td>3</td><td>Handle <code>@EventPattern('appointment.booked')</code> — send confirmation</td><td>same</td></tr>
+            <tr><td>4</td><td>Handle <code>@EventPattern('appointment.cancelled')</code> — send notice</td><td>same</td></tr>
+            <tr><td>5</td><td>Add email methods to <code>MailerService</code></td><td><code>nodemailer/mailer.service.ts</code></td></tr>
+            <tr><td>6</td><td>Register <code>MailerModule</code> in notification module</td><td><code>notification.module.ts</code></td></tr>
+            <tr><td>7</td><td>Test with actual RMQ events</td><td>Manual + Jest</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">0.2</span>
+        <h3><i class="fas fa-file-alt"></i> HTML Email Templates</h3>
+      </div>
+      <p>Professional, responsive email templates for all notification types.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Template</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td><code>welcome.html</code></td><td>Logo, heading, verification link, footer</td></tr>
+            <tr><td>2</td><td><code>booking-confirmation.html</code></td><td>Appointment details, provider info, meeting link</td></tr>
+            <tr><td>3</td><td><code>cancellation.html</code></td><td>Notice, ref number, reschedule CTA</td></tr>
+            <tr><td>4</td><td><code>reminder-24h.html</code></td><td>"Your appointment is tomorrow"</td></tr>
+            <tr><td>5</td><td><code>reminder-1h.html</code></td><td>"Your appointment is in 1 hour" + link</td></tr>
+            <tr><td>6</td><td>All responsive</td><td>Inline CSS, mobile + desktop</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">0.3</span>
+        <h3><i class="fas fa-sms"></i> SMS Provider (Twilio)</h3>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Step</th><th>Action</th><th>File(s)</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Install <code>twilio</code> package</td><td><code>package.json</code></td></tr>
+            <tr><td>2</td><td>Create <code>SmsService</code> with <code>sendSms(phone, message)</code></td><td><code>sms/sms.service.ts</code></td></tr>
+            <tr><td>3</td><td>Add <code>SmsModule</code> with Twilio config from env</td><td><code>sms/sms.module.ts</code></td></tr>
+            <tr><td>4</td><td>Add SMS event handlers for same 3 events</td><td><code>notification.controller.ts</code></td></tr>
+            <tr><td>5</td><td>Create SMS templates (short, mobile-friendly)</td><td><code>sms/templates.ts</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">0.4</span>
+        <h3><i class="fas fa-sliders-h"></i> Notification Preferences</h3>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Step</th><th>Action</th><th>File(s)</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Add <code>notificationPreferences</code> sub-schema to User model</td><td><code>user.schema.ts</code></td></tr>
+            <tr><td>2</td><td>API: GET/PATCH <code>/api/v1/notifications/preferences</code></td><td>API Gateway + Auth RPC</td></tr>
+            <tr><td>3</td><td>Respect preferences in notification handlers</td><td><code>notification.controller.ts</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">0.5</span>
+        <h3><i class="fas fa-bell"></i> Appointment Reminders (24h &amp; 1h)</h3>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Step</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Install <code>@nestjs/schedule</code></td></tr>
+            <tr><td>2</td><td>Create <code>ReminderScheduler</code> in notification service</td></tr>
+            <tr><td>3</td><td>Cron: every 30 min, query appointments in ~24h where <code>reminder24hSent = false</code></td></tr>
+            <tr><td>4</td><td>Emit <code>appointment.reminder_24h</code> → email + SMS</td></tr>
+            <tr><td>5</td><td>Same for 1h reminders</td></tr>
+            <tr><td>6</td><td>Mark <code>reminder24hSent / reminder1hSent = true</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">0.6</span>
+        <h3><i class="fas fa-broom"></i> Audit &amp; Refactor</h3>
+      </div>
+      <ul class="checklist">
+        <li>Consistent error responses across all services</li>
+        <li>Add missing <code>@UseFilters(CatchExceptionsFilter)</code> in new controllers</li>
+        <li>Add <code>ValidateObjectIdPipe</code> where missing</li>
+        <li>Ensure RMQ patterns return proper error objects (not thrown exceptions)</li>
+        <li>Run <code>npm run lint</code> and fix all issues</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- PHASE 1 -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <section class="phase" id="phase1">
+    <div class="phase-header">
+      <div class="phase-icon"><i class="fas fa-user-md"></i></div>
+      <div class="phase-title-group">
+        <h2>Phase 1 — Provider Service</h2>
+        <div class="phase-subtitle"><i class="fas fa-clock"></i> Est. ~12 days &middot; Partial parallelization</div>
+      </div>
+    </div>
+    <div class="phase-goal">
+      <i class="fas fa-bullseye"></i> <strong>Goal:</strong> Dedicated microservice for provider profiles, credentials, ratings, search, and payouts.
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">1.1</span>
+        <h3><i class="fas fa-plus-circle"></i> Scaffold Provider Service</h3>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Step</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td><code>nest generate app provider_service</code></td></tr>
+            <tr><td>2</td><td>Add <code>provider_queue</code> to RMQ config</td></tr>
+            <tr><td>3</td><td>Port 3005, add to <code>start:dev:all</code></td></tr>
+            <tr><td>4</td><td>Create <code>AppModule</code> with Mongoose, Config, JWT, RMQ</td></tr>
+            <tr><td>5</td><td>Add global exception filter</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">1.2</span>
+        <h3><i class="fas fa-id-card"></i> Provider Profile Schema &amp; CRUD</h3>
+      </div>
+      <div class="table-wrap">
+        <table class="schema-table">
+          <thead><tr><th>Field</th><th>Type</th></tr></thead>
+          <tbody>
+            <tr><td><code>userId</code></td><td>ObjectId (ref: User)</td></tr>
+            <tr><td><code>fullName</code></td><td>String</td></tr>
+            <tr><td><code>photoUrl</code></td><td>String</td></tr>
+            <tr><td><code>bio</code></td><td>String (max 1000)</td></tr>
+            <tr><td><code>specializations</code></td><td>String[]</td></tr>
+            <tr><td><code>languages</code></td><td>String[]</td></tr>
+            <tr><td><code>credentials</code></td><td>Embedded[] (title, org, year, verified)</td></tr>
+            <tr><td><code>location</code></td><td>{ address, city, lat, lng }</td></tr>
+            <tr><td><code>isVerified</code></td><td>Boolean (default: false)</td></tr>
+            <tr><td><code>averageRating</code></td><td>Number (computed)</td></tr>
+            <tr><td><code>totalReviews</code></td><td>Number</td></tr>
+            <tr><td><code>earnings</code></td><td>{ totalEarned, pendingPayouts, lifetime }</td></tr>
+          </tbody>
+        </table>
+        <br>
+        <table>
+          <thead><tr><th>Method</th><th>Endpoint</th><th>Auth</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>GET</code></td><td><code>/api/v1/providers</code></td><td>JWT</td><td>List with search/filter/pagination</td></tr>
+            <tr><td><code>GET</code></td><td><code>/api/v1/providers/:id</code></td><td>JWT</td><td>Single profile</td></tr>
+            <tr><td><code>POST</code></td><td><code>/api/v1/providers/me</code></td><td>JWT</td><td>Create own profile</td></tr>
+            <tr><td><code>PATCH</code></td><td><code>/api/v1/providers/:id</code></td><td>JWT (owner/admin)</td><td>Update profile</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">1.3</span>
+        <h3><i class="fas fa-graduation-cap"></i> Credentialing Workflow</h3>
+      </div>
+      <ul class="checklist">
+        <li>Add <code>Credential</code> sub-schema: title, issuingOrganization, year, documentUrl, verified, verifiedBy, verifiedAt</li>
+        <li>Provider uploads credential document → stored in document service or as URL</li>
+        <li>Admin endpoint: <code>PATCH /api/v1/admin/providers/:id/credentials/:credId/verify</code></li>
+        <li>Admin dashboard: list unverified credentials</li>
+      </ul>
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">1.4</span>
+        <h3><i class="fas fa-star"></i> Ratings &amp; Reviews</h3>
+      </div>
+      <div class="table-wrap">
+        <table class="schema-table">
+          <thead><tr><th>Field</th><th>Type</th></tr></thead>
+          <tbody>
+            <tr><td><code>providerId</code></td><td>ObjectId</td></tr>
+            <tr><td><code>patientId</code></td><td>ObjectId</td></tr>
+            <tr><td><code>appointmentId</code></td><td>ObjectId (unique)</td></tr>
+            <tr><td><code>rating</code></td><td>Number (1–5)</td></tr>
+            <tr><td><code>comment</code></td><td>String (max 500)</td></tr>
+          </tbody>
+        </table>
+        <br>
+        <table>
+          <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>POST</code></td><td><code>/api/v1/providers/:id/reviews</code></td><td>Create review (after completed appointment)</td></tr>
+            <tr><td><code>GET</code></td><td><code>/api/v1/providers/:id/reviews</code></td><td>List reviews (paginated)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">1.5</span>
+        <h3><i class="fas fa-search"></i> Provider Search API</h3>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>specialization</code></td><td>String</td><td>Filter by specialization</td></tr>
+            <tr><td><code>minRating</code></td><td>Number</td><td>Minimum average rating (1–5)</td></tr>
+            <tr><td><code>city</code></td><td>String</td><td>Filter by location city</td></tr>
+            <tr><td><code>language</code></td><td>String</td><td>Filter by spoken language</td></tr>
+            <tr><td><code>isVerified</code></td><td>Boolean</td><td>Verified only</td></tr>
+            <tr><td><code>page, limit</code></td><td>Number</td><td>Pagination (default 10, max 50)</td></tr>
+            <tr><td><code>sort</code></td><td>String</td><td><code>rating</code>, <code>totalReviews</code>, <code>createdAt</code></td></tr>
+          </tbody>
+        </table>
+        <p style="margin-top:10px;font-size:13px;color:var(--text-muted);"><i class="fas fa-info-circle"></i> Text search on <code>fullName</code>, <code>bio</code>, <code>specializations</code> via MongoDB text index.</p>
+      </div>
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">1.6</span>
+        <h3><i class="fas fa-money-bill-wave"></i> Provider Earnings &amp; Payouts</h3>
+      </div>
+      <ul class="checklist">
+        <li>Earnings auto-updated on RMQ <code>appointment.completed</code> event</li>
+        <li><code>POST /api/v1/providers/:id/payout-request</code> — request payout</li>
+        <li><code>GET /api/v1/admin/payouts</code> — list pending payout requests</li>
+        <li><code>PATCH /api/v1/admin/payouts/:id</code> — approve/reject with notes</li>
+        <li>Payout history visible on provider profile</li>
+      </ul>
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">1.7</span>
+        <h3><i class="fas fa-network-wired"></i> API Gateway Routes</h3>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Endpoint</th><th>RMQ Pattern</th></tr></thead>
+          <tbody>
+            <tr><td><code>GET /api/v1/providers</code></td><td><code>provider.getList</code></td></tr>
+            <tr><td><code>GET /api/v1/providers/:id</code></td><td><code>provider.getById</code></td></tr>
+            <tr><td><code>PATCH /api/v1/providers/:id</code></td><td><code>provider.update</code></td></tr>
+            <tr><td><code>POST /api/v1/providers/me</code></td><td><code>provider.createMe</code></td></tr>
+            <tr><td><code>POST /api/v1/providers/:id/reviews</code></td><td><code>provider.createReview</code></td></tr>
+            <tr><td><code>GET /api/v1/providers/:id/reviews</code></td><td><code>provider.getReviews</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- PHASE 2 -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <section class="phase" id="phase2">
+    <div class="phase-header">
+      <div class="phase-icon"><i class="fas fa-robot"></i></div>
+      <div class="phase-title-group">
+        <h2>Phase 2 — AI Agents Service</h2>
+        <div class="phase-subtitle"><i class="fas fa-clock"></i> Est. ~16 days &middot; Partial parallelization</div>
+      </div>
+    </div>
+    <div class="phase-goal">
+      <i class="fas fa-bullseye"></i> <strong>Goal:</strong> Smart scheduling, no-show prediction, chatbot, document analysis, provider-patient matching.
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">2.1</span>
+        <h3><i class="fas fa-plus-circle"></i> Scaffold AI Service</h3>
+      </div>
+      <ul class="checklist">
+        <li><code>nest generate app ai_service</code></li>
+        <li>Add <code>ai_queue</code> to RMQ config</li>
+        <li>Port 3006, add to <code>start:dev:all</code></li>
+        <li>Module setup with Config, Mongoose, RMQ</li>
+      </ul>
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">2.2</span>
+        <h3><i class="fas fa-calendar-check"></i> Smart Scheduling Suggestions</h3>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Step</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Accept <code>{ providerId, patientId, preferredDays[], preferredTimeOfDay }</code></td></tr>
+            <tr><td>2</td><td>Analyze past booking patterns → suggest optimal slots</td></tr>
+            <tr><td>3</td><td>Consider: buffer times, busy days, patient history</td></tr>
+            <tr><td>4</td><td>Return top 3 suggested slots with reasoning</td></tr>
+            <tr><td><strong>API</strong></td><td><code>POST /api/v1/ai/suggest-slots</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">2.3</span>
+        <h3><i class="fas fa-chart-line"></i> No-Show Risk Prediction</h3>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Step</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Rule-based scoring: past no-shows (high), time of day, day of week, booking lead time</td></tr>
+            <tr><td>2</td><td>Score range 0–100. Flag ≥ 70 as high risk</td></tr>
+            <tr><td>3</td><td>Auto-trigger on booking via RMQ</td></tr>
+            <tr><td>4</td><td>High-risk → extra confirmation prompts</td></tr>
+            <tr><td><strong>API</strong></td><td><code>POST /api/v1/ai/predict-no-show</code> → <code>{ riskScore, riskLevel, factors[] }</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">2.4</span>
+        <h3><i class="fas fa-comment-dots"></i> Chatbot (Basic NLP)</h3>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Step</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Rule-based intent router: <code>parseMessage(text)</code> → <code>{ intent, entities }</code></td></tr>
+            <tr><td>2</td><td>Intents: book, cancel, reschedule, availability, faq, contact</td></tr>
+            <tr><td>3</td><td>FAQ dataset: common lawyer Q&A (pricing, hours, specializations)</td></tr>
+            <tr><td>4</td><td>Context tracking via <code>conversationId</code></td></tr>
+            <tr><td>5</td><td>Optional: OpenAI backend for advanced understanding</td></tr>
+            <tr><td><strong>API</strong></td><td><code>POST /api/v1/ai/chat</code> → <code>{ reply, suggestedActions[] }</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">2.5</span>
+        <h3><i class="fas fa-file-search"></i> Document Auto-Classification</h3>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Step</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Accept raw text or file URL</td></tr>
+            <tr><td>2</td><td>Classify: <code>contract</code>, <code>court_filing</code>, <code>affidavit</code>, <code>motion</code>, <code>discovery</code>, <code>other</code></td></tr>
+            <tr><td>3</td><td>Extract: dates, party names, case numbers, monetary amounts</td></tr>
+            <tr><td>4</td><td>Optional: OpenAI / local NLP model</td></tr>
+            <tr><td><strong>API</strong></td><td><code>POST /api/v1/ai/classify-document</code> → <code>{ type, confidence, entities[] }</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">2.6</span>
+        <h3><i class="fas fa-handshake"></i> Provider-Patient Matching</h3>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Step</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Input: <code>{ caseType, preferredLanguage, location, minRating }</code></td></tr>
+            <tr><td>2</td><td>Score: specialization (60%), language (20%), location (10%), rating (10%)</td></tr>
+            <tr><td>3</td><td>Return top 3 matches with scores and profiles</td></tr>
+            <tr><td><strong>API</strong></td><td><code>POST /api/v1/ai/match-provider</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- PHASE 3 -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <section class="phase" id="phase3">
+    <div class="phase-header">
+      <div class="phase-icon"><i class="fas fa-folder-open"></i></div>
+      <div class="phase-title-group">
+        <h2>Phase 3 — Document Service</h2>
+        <div class="phase-subtitle"><i class="fas fa-clock"></i> Est. ~16 days &middot; Tasks 3.5/3.6/3.7 parallelizable</div>
+      </div>
+    </div>
+    <div class="phase-goal">
+      <i class="fas fa-bullseye"></i> <strong>Goal:</strong> Full document lifecycle — upload, version, share, OCR, e-sign.
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">3.1</span>
+        <h3><i class="fas fa-plus-circle"></i> Scaffold Document Service</h3>
+      </div>
+      <ul class="checklist">
+        <li><code>nest generate app document_service</code></li>
+        <li>Add <code>document_queue</code> to RMQ config</li>
+        <li>Port 3007, add to <code>start:dev:all</code></li>
+        <li>Install <code>multer</code>, <code>@types/multer</code>, <code>aws-sdk</code></li>
+      </ul>
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">3.2</span>
+        <h3><i class="fas fa-upload"></i> File Upload &amp; Storage</h3>
+      </div>
+      <ul class="checklist">
+        <li>Create <code>FileUploadInterceptor</code> using Multer</li>
+        <li>Storage: local <code>./uploads/</code> (dev) / S3 (prod, configurable via env)</li>
+        <li>Allowed MIME: PDF, DOC, DOCX, PNG, JPG, TIFF</li>
+        <li>Max file size: 20MB (configurable)</li>
+        <li>UUID filenames, preserve original name in metadata</li>
+        <li><strong>API:</strong> <code>POST /api/v1/documents/upload</code></li>
+      </ul>
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">3.3</span>
+        <h3><i class="fas fa-copy"></i> Document CRUD + Versioning</h3>
+      </div>
+      <div class="table-wrap">
+        <table class="schema-table">
+          <thead><tr><th>Field</th><th>Type</th></tr></thead>
+          <tbody>
+            <tr><td><code>title</code></td><td>String</td></tr>
+            <tr><td><code>originalName</code></td><td>String</td></tr>
+            <tr><td><code>mimeType</code></td><td>String</td></tr>
+            <tr><td><code>size</code></td><td>Number (bytes)</td></tr>
+            <tr><td><code>storagePath</code></td><td>String</td></tr>
+            <tr><td><code>ownerId</code></td><td>ObjectId (User)</td></tr>
+            <tr><td><code>tags</code></td><td>String[]</td></tr>
+            <tr><td><code>versions</code></td><td>Embedded[] (versionNumber, storagePath, uploadedBy, uploadedAt)</td></tr>
+            <tr><td><code>currentVersion</code></td><td>Number</td></tr>
+            <tr><td><code>sharedWith</code></td><td>Embedded[] (userId, permission)</td></tr>
+          </tbody>
+        </table>
+        <br>
+        <table>
+          <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>GET</code></td><td><code>/api/v1/documents</code></td><td>List own documents</td></tr>
+            <tr><td><code>GET</code></td><td><code>/api/v1/documents/:id</code></td><td>Get metadata</td></tr>
+            <tr><td><code>GET</code></td><td><code>/api/v1/documents/:id/download</code></td><td>Download current version</td></tr>
+            <tr><td><code>PATCH</code></td><td><code>/api/v1/documents/:id</code></td><td>Update title/tags</td></tr>
+            <tr><td><code>DELETE</code></td><td><code>/api/v1/documents/:id</code></td><td>Soft delete</td></tr>
+            <tr><td><code>POST</code></td><td><code>/api/v1/documents/:id/versions</code></td><td>Upload new version</td></tr>
+            <tr><td><code>GET</code></td><td><code>/api/v1/documents/:id/versions</code></td><td>List version history</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">3.4</span>
+        <h3><i class="fas fa-share-alt"></i> Access Control &amp; Sharing</h3>
+      </div>
+      <ul class="checklist">
+        <li><code>POST /api/v1/documents/:id/share</code> — add <code>{ userId, permission }</code></li>
+        <li><code>DELETE /api/v1/documents/:id/share/:userId</code> — revoke</li>
+        <li><code>GET /api/v1/documents/shared-with-me</code> — incoming shared docs</li>
+        <li>Access middleware: owner = full, shared = limited by permission</li>
+      </ul>
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">3.5</span>
+        <h3><i class="fas fa-file-invoice"></i> Document Templates</h3>
+      </div>
+      <ul class="checklist">
+        <li><code>Template</code> schema: <code>name, category, content ({{variables}}), isActive</code></li>
+        <li>Admin CRUD for templates</li>
+        <li><code>POST /api/v1/templates/:id/render</code> — inject variables → rendered document</li>
+        <li>Built-in: retainer agreement, fee agreement, intake form, NDA</li>
+      </ul>
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">3.6</span>
+        <h3><i class="fas fa-eye"></i> OCR for Scanned Documents</h3>
+      </div>
+      <ul class="checklist">
+        <li>Install <code>tesseract.js</code></li>
+        <li>On image/scanned PDF upload → trigger OCR job</li>
+        <li>Store extracted text in <code>Document.textContent</code></li>
+        <li>Make text searchable via MongoDB text index</li>
+        <li><strong>API:</strong> <code>POST /api/v1/documents/:id/ocr</code> — manual re-OCR</li>
+      </ul>
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">3.7</span>
+        <h3><i class="fas fa-pen-fancy"></i> e-Signature</h3>
+      </div>
+      <ul class="checklist">
+        <li><code>Signature</code> schema: <code>documentId, signerId, type (draw/type), signatureData, signedAt</code></li>
+        <li><code>POST /api/v1/documents/:id/sign</code> — capture signature</li>
+        <li><code>GET /api/v1/documents/:id/signatures</code> — list signatories</li>
+        <li>Embed signature onto PDF via <code>pdf-lib</code></li>
+        <li>Audit trail: IP, timestamp, user agent</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- PHASE 4 -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <section class="phase" id="phase4">
+    <div class="phase-header">
+      <div class="phase-icon"><i class="fas fa-chart-pie"></i></div>
+      <div class="phase-title-group">
+        <h2>Phase 4 — Analytics Service</h2>
+        <div class="phase-subtitle"><i class="fas fa-clock"></i> Est. ~11 days &middot; Tasks 4.5/4.6 parallelizable</div>
+      </div>
+    </div>
+    <div class="phase-goal">
+      <i class="fas fa-bullseye"></i> <strong>Goal:</strong> Dashboards, reports, revenue tracking, provider performance.
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">4.1</span>
+        <h3><i class="fas fa-plus-circle"></i> Scaffold Analytics Service</h3>
+      </div>
+      <ul class="checklist">
+        <li><code>nest generate app analytics_service</code></li>
+        <li>Add <code>analytics_queue</code> to RMQ config</li>
+        <li>Port 3008, add to <code>start:dev:all</code></li>
+        <li>Module with Mongoose, Config, RMQ</li>
+      </ul>
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">4.2</span>
+        <h3><i class="fas fa-dollar-sign"></i> Revenue Analytics</h3>
+      </div>
+      <ul class="checklist">
+        <li>Listen to <code>payment.succeeded</code> RMQ event → update aggregates</li>
+        <li><code>RevenueSnapshot</code> schema: <code>date, providerId, totalAmount, bookingCount, currency</code></li>
+        <li><strong>API:</strong> <code>GET /api/v1/analytics/revenue?period=&amp;from=&amp;to=&amp;providerId=</code></li>
+        <li>Returns: <code>{ totalRevenue, bookingCount, avgRevenuePerBooking, breakdownByProvider[] }</code></li>
+        <li>Period-over-period comparison</li>
+      </ul>
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">4.3</span>
+        <h3><i class="fas fa-calendar-alt"></i> Appointment Metrics</h3>
+      </div>
+      <ul class="checklist">
+        <li>Listen to <code>appointment.*</code> events → update metrics</li>
+        <li><code>AppointmentMetrics</code> schema: <code>date, total, confirmed, cancelled, noShow, completed, rescheduled</code></li>
+        <li><strong>API:</strong> <code>GET /api/v1/analytics/appointments</code> — period/provider filters</li>
+        <li>Rates: <code>noShowRate</code>, <code>cancellationRate</code>, <code>completionRate</code></li>
+      </ul>
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">4.4</span>
+        <h3><i class="fas fa-user-tie"></i> Provider Performance</h3>
+      </div>
+      <ul class="checklist">
+        <li>Per-provider: totalAppointments, completed, revenue, avgRating, utilizationRate</li>
+        <li><strong>API:</strong> <code>GET /api/v1/analytics/providers/:id</code> — single provider</li>
+        <li><strong>API:</strong> <code>GET /api/v1/analytics/providers</code> — leaderboard</li>
+        <li>Trends: weekly/monthly change across metrics</li>
+      </ul>
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">4.5</span>
+        <h3><i class="fas fa-tachometer-alt"></i> Dashboard API</h3>
+      </div>
+      <p><strong>Endpoint:</strong> <code>GET /api/v1/analytics/dashboard</code></p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Field</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>todayAppointments</code></td><td>Count of today's appointments</td></tr>
+            <tr><td><code>revenueToday</code></td><td>Revenue generated today</td></tr>
+            <tr><td><code>noShowRate</code></td><td>Current period no-show rate</td></tr>
+            <tr><td><code>activeProviders</code></td><td>Number of active providers</td></tr>
+            <tr><td><code>pendingPayouts</code></td><td>Total pending payout amount</td></tr>
+            <tr><td><code>recentActivity</code></td><td>Recent appointments activity</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin-top:8px;font-size:13px;color:var(--text-muted);"><i class="fas fa-database"></i> Cache: DB snapshot, refresh every 15 minutes.</p>
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">4.6</span>
+        <h3><i class="fas fa-file-export"></i> Report Export (PDF/CSV)</h3>
+      </div>
+      <ul class="checklist">
+        <li>Install <code>pdfkit</code> or <code>jspdf</code></li>
+        <li><code>GET /api/v1/analytics/reports/revenue?format=pdf|csv&amp;from=&amp;to=</code></li>
+        <li><code>GET /api/v1/analytics/reports/appointments?format=pdf|csv&amp;from=&amp;to=</code></li>
+        <li>CSV: flat rows, Excel-compatible</li>
+        <li>PDF: structured report with header, date range, tables, totals</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- PHASE 5 -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <section class="phase" id="phase5">
+    <div class="phase-header">
+      <div class="phase-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+      <div class="phase-title-group">
+        <h2>Phase 5 — DevOps &amp; Deployment</h2>
+        <div class="phase-subtitle"><i class="fas fa-clock"></i> Est. ~13 days &middot; Tasks 5.1/5.2 parallelizable</div>
+      </div>
+    </div>
+    <div class="phase-goal">
+      <i class="fas fa-bullseye"></i> <strong>Goal:</strong> Containerize all services, automate CI/CD, deploy to production.
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">5.1</span>
+        <h3><i class="fab fa-docker"></i> Dockerfiles (Per Service)</h3>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Step</th><th>Instruction</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Base image: <code>node:20-alpine</code></td></tr>
+            <tr><td>2</td><td>Multi-stage: <code>deps</code> → <code>build</code> → <code>production</code></td></tr>
+            <tr><td>3</td><td>Copy only <code>dist/</code> and <code>node_modules</code> (production) into final stage</td></tr>
+            <tr><td>4</td><td>Expose service port</td></tr>
+            <tr><td>5</td><td><code>HEALTHCHECK</code> — curl <code>http://localhost:{port}/health</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">5.2</span>
+        <h3><i class="fas fa-cubes"></i> docker-compose.yml (Dev)</h3>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Service</th><th>Image</th><th>Port</th></tr></thead>
+          <tbody>
+            <tr><td><code>mongo</code></td><td><code>mongo:7</code> (replica set)</td><td>27017</td></tr>
+            <tr><td><code>rabbitmq</code></td><td><code>rabbitmq:3-management</code></td><td>5672, 15672</td></tr>
+            <tr><td><code>api-gateway</code></td><td>build: apps/api-gateway</td><td>3010</td></tr>
+            <tr><td><code>auth-service</code></td><td>build: apps/auth_service</td><td>3001</td></tr>
+            <tr><td><code>booking-service</code></td><td>build: apps/booking_service</td><td>3002</td></tr>
+            <tr><td><code>notification-service</code></td><td>build: apps/notification_service</td><td>3003</td></tr>
+            <tr><td><code>payment-service</code></td><td>build: apps/payment_service</td><td>3004</td></tr>
+            <tr><td><code>provider-service</code></td><td>build: apps/provider_service</td><td>3005</td></tr>
+            <tr><td><code>ai-service</code></td><td>build: apps/ai_service</td><td>3006</td></tr>
+            <tr><td><code>document-service</code></td><td>build: apps/document_service</td><td>3007</td></tr>
+            <tr><td><code>analytics-service</code></td><td>build: apps/analytics_service</td><td>3008</td></tr>
+          </tbody>
+        </table>
+        <p style="margin-top:8px;font-size:13px;color:var(--text-muted);">Volumes: <code>mongo_data</code>, <code>rmq_data</code>, <code>uploads</code> &middot; Network: <code>lawyer_network</code></p>
+      </div>
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">5.3</span>
+        <h3><i class="fas fa-rocket"></i> docker-compose.prod.yml</h3>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Feature</th><th>Config</th></tr></thead>
+          <tbody>
+            <tr><td>Restart policy</td><td><code>always</code></td></tr>
+            <tr><td>Logging</td><td><code>json-file</code> driver with rotation</td></tr>
+            <tr><td>Resource limits</td><td>CPU/Memory per service</td></tr>
+            <tr><td>Secrets</td><td>Docker secrets for <code>.env</code></td></tr>
+            <tr><td>Healthchecks</td><td>On all services</td></tr>
+            <tr><td>Reverse proxy</td><td>Traefik or Nginx (SSL termination)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">5.4</span>
+        <h3><i class="fab fa-github"></i> CI/CD (GitHub Actions)</h3>
+      </div>
+      <div class="code-block">
+<span class="kw">name:</span> Deploy<br>
+<span class="kw">on:</span><br>
+&nbsp;&nbsp;<span class="kw">push:</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">branches:</span> [main, develop]<br>
+<br>
+<span class="kw">jobs:</span><br>
+&nbsp;&nbsp;<span class="kw">lint:</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">runs-on:</span> ubuntu-latest<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">steps:</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- uses: actions/checkout@v4<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- run: npm ci<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- run: npm run lint<br>
+<br>
+&nbsp;&nbsp;<span class="kw">test:</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">runs-on:</span> ubuntu-latest<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">steps:</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- uses: actions/checkout@v4<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- run: npm ci<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- run: npm run test<br>
+<br>
+&nbsp;&nbsp;<span class="kw">build-and-push:</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">needs:</span> [lint, test]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">runs-on:</span> ubuntu-latest<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">steps:</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- uses: actions/checkout@v4<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- <span class="kw">run:</span> docker compose -f docker-compose.prod.yml build<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- <span class="kw">run:</span> docker push ...<br>
+<br>
+&nbsp;&nbsp;<span class="kw">deploy:</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">needs:</span> [build-and-push]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">runs-on:</span> ubuntu-latest<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">steps:</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- <span class="kw">run:</span> ssh $SERVER "docker compose pull && docker compose up -d"
+      </div>
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">5.5</span>
+        <h3><i class="fas fa-server"></i> Deployment Target Options</h3>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Option</th><th>Pros</th><th>Cons</th><th>Rec.</th></tr></thead>
+          <tbody>
+            <tr><td><strong>AWS ECS</strong> (Fargate)</td><td>Managed, auto-scaling, ALB</td><td>Higher cost, AWS lock-in</td><td>✅ If budget allows</td></tr>
+            <tr><td><strong>DigitalOcean</strong></td><td>Simple, fixed pricing</td><td>Less control</td><td>✅ Good mid-tier</td></tr>
+            <tr><td><strong>Docker Swarm</strong></td><td>Simple, no extra cost</td><td>Manual management</td><td>✅✅ Best start</td></tr>
+            <tr><td><strong>Kubernetes (K3s)</strong></td><td>Industry standard</td><td>Steep learning curve</td><td>⏸ When scaling</td></tr>
+          </tbody>
+        </table>
+        <p style="margin-top:8px;font-size:13px;color:var(--text-muted);"><i class="fas fa-info-circle"></i> Recommended: <strong>Docker Swarm</strong> first, migrate to K8s if needed.</p>
+      </div>
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">5.6</span>
+        <h3><i class="fas fa-key"></i> Secrets Management</h3>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Secret</th><th>Source</th></tr></thead>
+          <tbody>
+            <tr><td><code>MONGO_URI</code></td><td>MongoDB Atlas</td></tr>
+            <tr><td><code>RMQ_URL</code></td><td>CloudAMQP</td></tr>
+            <tr><td><code>JWT_SECRETS</code></td><td>Generated (rotate monthly)</td></tr>
+            <tr><td><code>SMTP_CREDENTIALS</code></td><td>Gmail app password</td></tr>
+            <tr><td><code>TWILIO_CREDENTIALS</code></td><td>Twilio account</td></tr>
+            <tr><td><code>STRIPE_KEYS</code></td><td>Stripe dashboard</td></tr>
+            <tr><td><code>OPENAI_KEY</code></td><td>OpenAI (if used)</td></tr>
+          </tbody>
+        </table>
+        <p style="margin-top:8px;font-size:13px;color:var(--text-muted);"><i class="fas fa-shield-alt"></i> Storage: GitHub Secrets → env in CI/CD → Docker secrets in production.</p>
+      </div>
+    </div>
+
+    <div class="task-card">
+      <div class="task-card-header">
+        <span class="task-badge">5.7</span>
+        <h3><i class="fas fa-chart-bar"></i> Monitoring &amp; Logging</h3>
+      </div>
+      <ul class="checklist">
+        <li><code>/health</code> endpoint on every service (uptime, DB status)</li>
+        <li>Centralized logging: ELK stack or Grafana Loki</li>
+        <li>Metrics: Prometheus + Grafana (CPU, memory, latency, queue depth)</li>
+        <li>Alerts: Slack/Email on service down, error spike, queue backup</li>
+        <li>Uptime monitoring: UptimeRobot / BetterStack (free tier)</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- ARCHITECTURE -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <section id="architecture" class="arch-section">
+    <h2><i class="fas fa-sitemap"></i> Architecture — Final State</h2>
+    <div class="arch-diagram">                          ┌──────────────────┐
+                          │    Frontend      │ <span class="hl">(Future)</span>
+                          └────────┬─────────┘
+                                   │ HTTPS
+                          ┌────────▼─────────┐
+                          │   API Gateway     │ <span class="hl">:3010</span>
+                          │  Swagger, JWT     │
+                          │  Throttling       │
+                          └──┬──┬──┬──┬───────┘
+                     ┌───────┘  │  │  └──────────┐
+                     │  RabbitMQ│  │  RMQ         │
+               ┌─────▼──┐ ┌────▼──▼──┐ ┌───────▼──┐
+               │ Auth   │ │ Booking  │ │ Payment  │
+               │ <span class="hl">:3001</span>  │ │ <span class="hl">:3002</span>    │ │ <span class="hl">:3004</span>   │
+               └────┬───┘ └────┬─────┘ └──────┬───┘
+                    │          │               │
+               ┌────▼──────────▼───────────────▼───┐
+               │      Notification <span class="hl">:3003</span>           │
+               │   Email (Nodemailer) + SMS         │
+               └───────────────────────────────────┘
+               ┌───────────┐ ┌───────────┐
+               │  Provider │ │  AI Agent │
+               │  <span class="hl">:3005</span>    │ │  <span class="hl">:3006</span>    │
+               └───────────┘ └───────────┘
+               ┌───────────┐ ┌───────────┐
+               │ Document  │ │ Analytics │
+               │  <span class="hl">:3007</span>    │ │  <span class="hl">:3008</span>    │
+               └───────────┘ └───────────┘
+
+    <span class="hl">MongoDB Atlas</span>   ──── 9 services
+    <span class="hl">RabbitMQ Cloud</span>  ──── Message bus
+    <span class="hl">Docker</span>         ──── Container runtime
+    <span class="hl">GitHub Actions</span> ──── CI/CD pipeline</div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- TIMELINE -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <section id="timeline" class="phase">
+    <div class="phase-header">
+      <div class="phase-icon"><i class="fas fa-calendar-alt"></i></div>
+      <div class="phase-title-group">
+        <h2>Timeline Summary</h2>
+        <div class="phase-subtitle">Estimated duration with parallel execution</div>
+      </div>
+    </div>
+
+    <div class="timeline-grid">
+      <div class="timeline-card">
+        <div class="phase-name"><i class="fas fa-tools" style="color:var(--gold);"></i> Phase 0 — Foundation</div>
+        <div class="phase-dur"><i class="fas fa-clock"></i> ~11 days</div>
+        <div class="phase-para">Tasks 0.1 → 0.6 &middot; Sequential</div>
+      </div>
+      <div class="timeline-card">
+        <div class="phase-name"><i class="fas fa-user-md" style="color:var(--gold);"></i> Phase 1 — Provider</div>
+        <div class="phase-dur"><i class="fas fa-clock"></i> ~12 days</div>
+        <div class="phase-para">Tasks 1.1 → 1.7 &middot; Partial parallel</div>
+      </div>
+      <div class="timeline-card">
+        <div class="phase-name"><i class="fas fa-robot" style="color:var(--gold);"></i> Phase 2 — AI Agents</div>
+        <div class="phase-dur"><i class="fas fa-clock"></i> ~16 days</div>
+        <div class="phase-para">Tasks 2.1 → 2.6 &middot; Partial parallel</div>
+      </div>
+      <div class="timeline-card">
+        <div class="phase-name"><i class="fas fa-folder-open" style="color:var(--gold);"></i> Phase 3 — Document</div>
+        <div class="phase-dur"><i class="fas fa-clock"></i> ~16 days</div>
+        <div class="phase-para">Tasks 3.1 → 3.7 &middot; 3.5/3.6/3.7 parallel</div>
+      </div>
+      <div class="timeline-card">
+        <div class="phase-name"><i class="fas fa-chart-pie" style="color:var(--gold);"></i> Phase 4 — Analytics</div>
+        <div class="phase-dur"><i class="fas fa-clock"></i> ~11 days</div>
+        <div class="phase-para">Tasks 4.1 → 4.6 &middot; 4.5/4.6 parallel</div>
+      </div>
+      <div class="timeline-card">
+        <div class="phase-name"><i class="fas fa-cloud-upload-alt" style="color:var(--gold);"></i> Phase 5 — DevOps</div>
+        <div class="phase-dur"><i class="fas fa-clock"></i> ~13 days</div>
+        <div class="phase-para">Tasks 5.1 → 5.7 &middot; 5.1/5.2 parallel</div>
+      </div>
+    </div>
+
+    <div class="parallel-box">
+      <h3><i class="fas fa-random"></i> Parallel Execution Strategy</h3>
+      <ol>
+        <li><strong>Phase 0</strong> → sequential (must complete first)</li>
+        <li><strong>Phase 1</strong> → starts after Phase 0</li>
+        <li><strong>Phases 2, 3, 4</strong> → run in parallel with Phase 1</li>
+        <li><strong>Phase 5</strong> → runs alongside final phases or at the end</li>
+      </ol>
+      <p><i class="fas fa-hourglass-half"></i> Total estimated: <strong>~45–55 days</strong> with parallelization</p>
+    </div>
+  </section>
+
+</div>
+
+<footer class="footer">
+  <i class="fas fa-gavel"></i> Lawyer Management System &middot; Implementation Plan &middot; Built with NestJS, MongoDB, RabbitMQ, Docker
+</footer>
+
+<script>
+  // ─── Dark Mode Toggle ───
+  const toggle = document.getElementById('themeToggle');
+  const html = document.documentElement;
+
+  function setTheme(theme) {
+    html.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }
+
+  // Load saved theme
+  const saved = localStorage.getItem('theme');
+  if (saved) {
+    setTheme(saved);
+  } else {
+    setTheme(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  }
+
+  toggle.addEventListener('click', () => {
+    const current = html.getAttribute('data-theme');
+    setTheme(current === 'dark' ? 'light' : 'dark');
+  });
+
+  // ─── Scroll Progress Bar ───
+  const progressBar = document.getElementById('progressBar');
+
+  window.addEventListener('scroll', () => {
+    const scrollTop = window.scrollY;
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+    progressBar.style.width = Math.min(progress, 100) + '%';
+  });
+
+  // ─── Intersection Observer for Phase Animations ───
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.style.animationPlayState = 'running';
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.phase').forEach(el => {
+    el.style.animationPlayState = 'paused';
+    observer.observe(el);
+  });
+</script>
+</body>
+</html>
