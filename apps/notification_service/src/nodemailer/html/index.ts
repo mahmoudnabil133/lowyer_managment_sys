@@ -1,0 +1,9 @@
+export { welcomeEmailHtml } from './welcome';
+export { bookingConfirmationHtml } from './booking-confirmation';
+export { cancellationHtml } from './cancellation';
+export { reminder24hHtml } from './reminder-24h';
+export { reminder1hHtml } from './reminder-1h';
+export { rescheduledHtml } from './rescheduled';
+export { completedHtml } from './completed';
+export { verification_email_html } from './verify-email';
+export { reset_password_html } from './reset-password';
