@@ -13,6 +13,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { AppointmentHistory, AppointmentHistorySchema } from './models/appointment-history.schema';
 import { RmqModule } from '@app/rmq';
 import { APP_FILTER } from '@nestjs/core';
+import { BookingRpcController } from './rpcController/booking.rpc.controller';
 
 @Module({
   imports: [
@@ -42,7 +43,7 @@ import { APP_FILTER } from '@nestjs/core';
     RmqModule.register({ name: 'PAYMENT_SERVICE', queue: 'payment_queue' }),
 
   ],
-  controllers: [AppointmentController, AvailabilityController, ScheduleController],
+  controllers: [AppointmentController, AvailabilityController, ScheduleController, BookingRpcController],
   providers: [
     AppointmentService,
     AvailabilityService,

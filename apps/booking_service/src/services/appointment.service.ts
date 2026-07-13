@@ -33,7 +33,7 @@ import {
 import { DateTime } from 'luxon';
 import { ClientProxy } from '@nestjs/microservices';
 import { SlotStatus } from '../models/slot.schema';
-import { ApiFeatureService } from '@app/common';
+import { ApiFeatureService, NOTIFICATION_PATTERNS } from '@app/common';
 import { lastValueFrom } from 'rxjs';
 
 const ALLOWED_TRANSITIONS: Record<AppointmentStatus, AppointmentStatus[]> = {
@@ -86,6 +86,7 @@ export class AppointmentService {
    * */
 
   async bookAppointment(dto: BookAppointmentDto, patientId: string) {
+    console.log(dto);
     const slot = await this.availabilityService.findSlotById(dto.slotId)
     if (!slot) {
       throw new NotFoundException('Slot not found');
@@ -205,6 +206,9 @@ export class AppointmentService {
     const session = await this.connection.startSession();
 
     try {
+
+      console.log('fulfillPaidAppointment');
+
       await session.withTransaction(async () => {
         const appointment = await this.appointmentModel
           .findById(payload.appointmentId)
@@ -246,7 +250,7 @@ export class AppointmentService {
         );
         const confirmedAppt = await this.appointmentModel.findById(payload.appointmentId).lean();
         if (confirmedAppt) {
-          await this.publishEvent('appointment.booked', confirmedAppt);
+          await this.publishEvent(NOTIFICATION_PATTERNS.APPOINTMENT_BOOKED, confirmedAppt);
         }
       });
     } catch (error) {
@@ -318,11 +322,14 @@ export class AppointmentService {
     } finally {
       await session.endSession();
     }
-    await this.publishEvent('appointment.cancelled', {
+    await this.publishEvent(NOTIFICATION_PATTERNS.APPOINTMENT_CANCELLED, {
       appointmentId: appointment._id,
       bookingRef: appointment.bookingRef,
       providerId: appointment.providerId,
       patientId: appointment.patient.patientId,
+      patientName: appointment.patient.fullName,
+      patientEmail: appointment.patient.email,
+      patientPhone: appointment.patient.phone,
       reason: dto.reason,
       cancelledByRole: cancelledByRole,
       startTime: appointment.startTime,
@@ -432,12 +439,15 @@ export class AppointmentService {
       await session.endSession();
     }
 
-    await this.publishEvent('appointment.rescheduled', {
+    await this.publishEvent(NOTIFICATION_PATTERNS.APPOINTMENT_RESCHEDULED, {
       oldAppointmentId: appointment._id,
       newAppointmentId: newAppointment!._id,
       newBookingRef: newAppointment!.bookingRef,
       providerId: appointment.providerId,
       patientId: appointment.patient.patientId,
+      patientName: appointment.patient.fullName,
+      patientEmail: appointment.patient.email,
+      patientPhone: appointment.patient.phone,
       oldStartTime: appointment.startTime,
       newStartTime: slot.startTime,
     });
@@ -476,6 +486,8 @@ export class AppointmentService {
       appointmentId: appointment._id,
       bookingRef: appointment.bookingRef,
       status: toStatus,
+      patientEmail: appointment.patient.email,
+      patientName: appointment.patient.fullName,
     });
 
     return appointment;

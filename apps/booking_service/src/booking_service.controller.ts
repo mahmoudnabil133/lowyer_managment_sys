@@ -89,6 +89,7 @@ export class AppointmentController {
   @HttpCode(HttpStatus.CREATED)
   async book(@Body() dto: BookAppointmentDto, @Req() req: any) {
     const patientId = req.user.userId;
+    const email = req.user.email;
     return await this.appointmentService.bookAppointment(dto, patientId);
   }
 

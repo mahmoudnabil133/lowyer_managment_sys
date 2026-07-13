@@ -12,9 +12,9 @@ const HOLD_DURATION_MINUTES = 10;
 export class AvailabilityService {
   constructor(
     @InjectModel(TimeSlot.name)
-    private slotModel: Model<TimeSlotDocument>,
+    public slotModel: Model<TimeSlotDocument>,
     @InjectModel(ProviderSchedule.name)
-    private scheduleModel: Model<ProviderScheduleDocument>,
+    public scheduleModel: Model<ProviderScheduleDocument>,
   ) { }
 
   // quiry all available slots (may by hold but expired)
