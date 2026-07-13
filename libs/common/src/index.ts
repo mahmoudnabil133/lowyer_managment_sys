@@ -10,3 +10,6 @@ export * from './global/dto/api-query.dto';
 export * from './global/types/paginated-res.interface';
 export * from './global/services/api-filter.service';
 export * from './global/filters/global.filter';
+export * from './global/filters/gateway.filter';
+
+export * from './constants'
