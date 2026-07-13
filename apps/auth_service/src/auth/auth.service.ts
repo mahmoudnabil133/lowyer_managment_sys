@@ -17,6 +17,7 @@ import express from 'express';
 import * as crypto from 'crypto';
 import { MailerService } from '../nodemailer/nodemailer.service';
 import { ClientProxy } from '@nestjs/microservices';
+import { NOTIFICATION_PATTERNS } from '@app/common';
 
 @Injectable()
 export class AuthService {
@@ -64,7 +65,7 @@ export class AuthService {
   async regester(createUserDto: CreateUserDto) {
     createUserDto.password = await bcrypt.hash(createUserDto.password, 10);
     let user = await this.userService.saveUser(createUserDto);
-    this.notificationClient.emit('user_created', { userId: user._id, email: user.email });
+    this.notificationClient.emit(NOTIFICATION_PATTERNS.USER_CREATED, { userId: user._id, email: user.email, name: user.name });
     return { msg: 'success, now you have to login ' };
   }
   async createAccessToken(sub: any, email: string, role: string) {

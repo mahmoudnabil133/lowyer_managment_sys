@@ -7,6 +7,8 @@ import { RefreshSchema, RefreshToken } from './refresh/refreshToken.model';
 import { MailerModule } from '../nodemailer/nodemailer.module';
 import { SharedRmqModule } from '../shared-rmq.module';
 import { JwtStrategyService, RolesGuard } from '@app/common';
+import { AuthRpcController } from '../rpcController/auth.rpc.controller';
+import { AuthRpcService } from '../rpcController/auth.rpc.service';
 
 
 @Module({
@@ -15,7 +17,7 @@ import { JwtStrategyService, RolesGuard } from '@app/common';
     MailerModule,
     SharedRmqModule,
   ],
-  controllers: [AuthController],
-  providers: [AuthService, JwtStrategyService, RolesGuard],
+  controllers: [AuthController, AuthRpcController],
+  providers: [AuthService, JwtStrategyService, RolesGuard, AuthRpcService],
 })
 export class AuthModule { }
