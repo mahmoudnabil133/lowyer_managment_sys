@@ -16,6 +16,24 @@ export const BOOKING_PATTERNS = {
     MARK_REMINDER_SENT: 'booking.markReminderSent',
 } as const;
 
+export const PROVIDER_PATTERNS = {
+    // Profile CRUD
+    GET_LIST: 'provider.getList',
+    GET_BY_ID: 'provider.getById',
+    CREATE_ME: 'provider.createMe',
+    UPDATE: 'provider.update',
+
+    // Reviews
+    CREATE_REVIEW: 'provider.createReview',
+    GET_REVIEWS: 'provider.getReviews',
+
+    // Admin
+    VERIFY_CREDENTIAL: 'provider.verifyCredential',
+    LIST_UNVERIFIED_CREDENTIALS: 'provider.listUnverifiedCredentials',
+
+    // Search
+    SEARCH: 'provider.search',
+} as const;
 export const AUTH_PATTERNS = {
     GET_USER: 'auth.getUser',
     GET_USER_PREFERENCES: 'auth.getUserPreferences',

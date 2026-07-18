@@ -64,6 +64,15 @@
         "tsConfigPath": "apps/payment_service/tsconfig.app.json"
       }
     },
+    "provider_service": {
+      "type": "application",
+      "root": "apps/provider_service",
+      "entryFile": "main",
+      "sourceRoot": "apps/provider_service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/provider_service/tsconfig.app.json"
+      }
+    },
     "rmq": {
       "type": "library",
       "root": "libs/rmq",

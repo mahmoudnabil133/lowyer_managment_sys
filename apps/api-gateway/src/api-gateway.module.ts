@@ -9,6 +9,9 @@ import { BookingController } from './booking/booking.controller';
 import { AuthController } from './auth/auth.controller';
 import { AuthService } from './auth/auth.service';
 import { BookingService } from './booking/booking.service';
+import { ProviderController } from './provider/provider.controller';
+import { AdminProviderController } from './provider/admin-provider.controller';
+import { ProviderService } from './provider/provider.service';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -33,12 +36,18 @@ import { BookingService } from './booking/booking.service';
     RmqModule.register({ name: 'PAYMENT_SERVICE', queue: 'payment_queue' }),
     RmqModule.register({ name: 'AUTH_SERVICE', queue: 'auth_queue' }),
     RmqModule.register({ name: 'BOOKING_SERVICE', queue: 'booking_queue' }),
-
+    RmqModule.register({ name: 'PROVIDER_SERVICE', queue: 'provider_queue' }),
 
   ],
-  controllers: [BookingController, AuthController],
+  controllers: [
+    BookingController,
+    AuthController,
+    ProviderController,
+    AdminProviderController
+  ],
   providers: [
     JwtStrategyService,
+    ProviderService,
     AuthService,
     BookingService,
     { provide: APP_GUARD, useClass: ThrottlerGuard }, // تفعيل الحارس (Guard) عالمياً على مستوى التطبيق بالكامل
