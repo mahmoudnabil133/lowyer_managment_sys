@@ -11,7 +11,6 @@ import { DocumentRpcController } from './rpc/document.rpc.controller';
 
 import { DocumentService } from './services/document.service';
 import { UploadService } from './services/upload.service';
-import { TextExtractionService } from './services/text-extraction.service';
 
 @Module({
   imports: [
@@ -26,14 +25,11 @@ import { TextExtractionService } from './services/text-extraction.service';
     RmqModule.forRoot(),
     RmqModule.register({ name: 'AI_SERVICE', queue: 'ai_queue' }),
   ],
-  controllers: [
-    DocumentRpcController,
-  ],
+  controllers: [DocumentRpcController],
   providers: [
     DocumentService,
     UploadService,
-    TextExtractionService,
     { provide: APP_FILTER, useClass: CatchExceptionsFilter },
   ],
 })
-export class DocumentServiceModule { }
+export class DocumentServiceModule {}

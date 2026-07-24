@@ -11,6 +11,8 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   await app.startAllMicroservices();
   await app.listen(process.env.DOCUMENT_PORT ?? 3007);
-  console.log(`Document service is running on port ${process.env.DOCUMENT_PORT ?? 3007}`);
+  console.log(
+    `Document service is running on port ${process.env.DOCUMENT_PORT ?? 3007}`,
+  );
 }
 bootstrap();
