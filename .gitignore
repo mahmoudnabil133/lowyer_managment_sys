@@ -20,7 +20,7 @@ docs
 # Tests
 /coverage
 /.nyc_output
-
+/docs
 # IDEs and editors
 /.idea
 .project

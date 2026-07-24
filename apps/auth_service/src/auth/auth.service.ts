@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UserService } from '../user/user.service';
-import * as bcrypt from 'bcryptjs'
+import * as bcrypt from 'bcryptjs';
 import { CreateUserDto } from '../user/dto/createUser.dto';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
@@ -28,14 +28,15 @@ export class AuthService {
     private readonly mailService: MailerService,
     @InjectModel('RefreshToken')
     private readonly refreshTokenModel: Model<RefreshDocument>,
-    @Inject('NOTIFICATION_SERVICE') private readonly notificationClient: ClientProxy,
-  ) { }
+    @Inject('NOTIFICATION_SERVICE')
+    private readonly notificationClient: ClientProxy,
+  ) {}
 
   async login(
     body: { email: string; password: string },
     res: express.Response,
   ) {
-    let user = await this.userService.findByEmail(body.email);
+    const user = await this.userService.findByEmail(body.email);
 
     if (!user || !(await bcrypt.compare(body.password, user.password))) {
       throw new HttpException('Invalid Credentials', HttpStatus.UNAUTHORIZED);
@@ -44,13 +45,14 @@ export class AuthService {
     return await this.createAndSendToken(user._id, user.email, user.role, res);
   }
 
-  async createAndSendToken(userId: any, email: string, role: string, res: express.Response) {
-    let access_token = await this.createAccessToken(
-      userId,
-      email,
-      role,
-    );
-    let refreshToken = await this.createRefreshToken(userId);
+  async createAndSendToken(
+    userId: any,
+    email: string,
+    role: string,
+    res: express.Response,
+  ) {
+    const access_token = await this.createAccessToken(userId, email, role);
+    const refreshToken = await this.createRefreshToken(userId);
 
     return res
       .status(200)
@@ -64,8 +66,12 @@ export class AuthService {
 
   async regester(createUserDto: CreateUserDto) {
     createUserDto.password = await bcrypt.hash(createUserDto.password, 10);
-    let user = await this.userService.saveUser(createUserDto);
-    this.notificationClient.emit(NOTIFICATION_PATTERNS.USER_CREATED, { userId: user._id, email: user.email, name: user.name });
+    const user = await this.userService.saveUser(createUserDto);
+    this.notificationClient.emit(NOTIFICATION_PATTERNS.USER_CREATED, {
+      userId: user._id,
+      email: user.email,
+      name: user.name,
+    });
     return { msg: 'success, now you have to login ' };
   }
   async createAccessToken(sub: any, email: string, role: string) {
@@ -77,13 +83,13 @@ export class AuthService {
   }
   async createRefreshToken(sub: any) {
     const payload = { sub };
-    let refreshToken = this.jwtService.sign(payload, {
+    const refreshToken = this.jwtService.sign(payload, {
       secret: this.config.get('refresh_secret'),
       expiresIn: '7d',
     });
-    let hashed_token = await bcrypt.hash(refreshToken, 12);
+    const hashed_token = await bcrypt.hash(refreshToken, 12);
 
-    let Token = {
+    const Token = {
       userId: sub.toString(),
       refreshToken,
       hashed_token,
@@ -104,36 +110,52 @@ export class AuthService {
 
   async sendEmailVerificationCode(email: string) {
     const user = await this.userService.findByEmail(email);
-    if (!user) throw new HttpException('Invalid Credentials', HttpStatus.UNAUTHORIZED);
+    if (!user)
+      throw new HttpException('Invalid Credentials', HttpStatus.UNAUTHORIZED);
 
     const code = this.generateResetCode();
     const hashedCode = this.createHash(code);
     user.virificationCode = hashedCode;
     user.virificationCodeExpires = new Date(Date.now() + 3 * 60 * 1000); // expires in 3 min
     try {
-      await this.mailService.sendVerifyEmail({ code, name: user.name, mail: user.email });
+      await this.mailService.sendVerifyEmail({
+        code,
+        name: user.name,
+        mail: user.email,
+      });
     } catch (err) {
       user.virificationCode = undefined;
       user.virificationCodeExpires = undefined;
-      throw new HttpException('error in sending email', HttpStatus.UNAUTHORIZED);
+      throw new HttpException(
+        'error in sending email',
+        HttpStatus.UNAUTHORIZED,
+      );
     }
     await user.save();
     return { msg: 'success, check verification code we sent to your email' };
   }
   async sendPasswordResetCode(body: { email: string }) {
     const user = await this.userService.findByEmail(body.email);
-    if (!user) throw new HttpException('Invalid Credentials', HttpStatus.UNAUTHORIZED);
+    if (!user)
+      throw new HttpException('Invalid Credentials', HttpStatus.UNAUTHORIZED);
 
     const code = this.generateResetCode();
     const hashedCode = this.createHash(code);
     user.passwordResetCode = hashedCode;
     user.passwordResetCodeExpiresIn = new Date(Date.now() + 3 * 60 * 1000); // expires in 3 min
     try {
-      await this.mailService.sendChangingPasswordCode({ code, name: user.name, mail: user.email });
+      await this.mailService.sendChangingPasswordCode({
+        code,
+        name: user.name,
+        mail: user.email,
+      });
     } catch (err) {
       user.passwordResetCode = undefined;
       user.passwordResetCodeExpiresIn = undefined;
-      throw new HttpException('error in sending email', HttpStatus.UNAUTHORIZED);
+      throw new HttpException(
+        'error in sending email',
+        HttpStatus.UNAUTHORIZED,
+      );
     }
     await user.save();
     return { msg: 'success, check verification code we sent to your email' };
@@ -141,17 +163,22 @@ export class AuthService {
 
   async validateEmailVerificationCode(code: string) {
     console.log(code);
-    let user = await this.userService.findByEmailverificationCode(this.createHash(code));
+    const user = await this.userService.findByEmailverificationCode(
+      this.createHash(code),
+    );
     if (!user) throw new HttpException('Invalid code', HttpStatus.UNAUTHORIZED);
 
     user.isVerified = true;
     user.virificationCode = undefined;
     user.virificationCodeExpires = undefined;
     await user.save();
-
   }
-  async validatePasswordResetCode(code: string, password: string, res: express.Response) {
-    let user = await this.userService.findByResetCode(this.createHash(code));
+  async validatePasswordResetCode(
+    code: string,
+    password: string,
+    res: express.Response,
+  ) {
+    const user = await this.userService.findByResetCode(this.createHash(code));
     if (!user) throw new HttpException('Invalid code', HttpStatus.UNAUTHORIZED);
 
     user.password = await bcrypt.hash(password, 12);
@@ -163,29 +190,29 @@ export class AuthService {
   }
 
   async refresh(req: express.Request, res: express.Response) {
-    let refresh = req.cookies?.refresh_token;
+    const refresh = req.cookies?.refresh_token;
     if (!refresh) {
       throw new UnauthorizedException('Refresh token not found');
     }
-    let payload = this.jwtService.verify(refresh, {
+    const payload = this.jwtService.verify(refresh, {
       secret: this.config.get('refresh_secret'),
     });
     if (!payload) {
       throw new UnauthorizedException('Refresh is not valid');
     }
     const userId = payload.sub;
-    let users: RefreshDocument[] = await this.refreshTokenModel.find({
+    const users: RefreshDocument[] = await this.refreshTokenModel.find({
       userId: userId,
     });
     if (!users) {
       throw new UnauthorizedException('Refresh is not valid');
     }
-    let comparisions = await Promise.all(
+    const comparisions = await Promise.all(
       users.map((user: RefreshDocument) =>
         bcrypt.compare(refresh, user.refreshToken),
       ),
     );
-    let isMatch = comparisions.findIndex((m) => m == true);
+    const isMatch = comparisions.findIndex((m) => m == true);
     if (!isMatch) {
       throw new UnauthorizedException('Refresh is not valid');
     }

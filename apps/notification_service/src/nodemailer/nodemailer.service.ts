@@ -18,7 +18,7 @@ export class MailerService {
 
   constructor(
     @Inject('TRANSPORTER') private transporter: nodemailer.Transporter,
-  ) { }
+  ) {}
 
   // ─── Existing methods (refactored to use the new naming) ───
 

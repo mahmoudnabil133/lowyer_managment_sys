@@ -68,13 +68,17 @@ export class NotificationServiceController {
 
   private fmtDate(d: Date | string): string {
     return new Date(d).toLocaleDateString('en-US', {
-      weekday: 'short', year: 'numeric', month: 'short', day: 'numeric',
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
     });
   }
 
   private fmtTime(d: Date | string): string {
     return new Date(d).toLocaleTimeString('en-US', {
-      hour: '2-digit', minute: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
     });
   }
 
@@ -141,7 +145,9 @@ export class NotificationServiceController {
       });
       this.logger.log(`Cancellation notice sent to ${data.patientEmail}`);
     } catch (error) {
-      this.logger.error(`appointment.cancelled handler error: ${error.message}`);
+      this.logger.error(
+        `appointment.cancelled handler error: ${error.message}`,
+      );
     } finally {
       this.rmqService.ack(context);
     }
@@ -165,7 +171,9 @@ export class NotificationServiceController {
       });
       this.logger.log(`Reschedule notice sent to ${data.patientEmail}`);
     } catch (error) {
-      this.logger.error(`appointment.rescheduled handler error: ${error.message}`);
+      this.logger.error(
+        `appointment.rescheduled handler error: ${error.message}`,
+      );
     } finally {
       this.rmqService.ack(context);
     }
@@ -209,7 +217,9 @@ export class NotificationServiceController {
       }
       this.logger.log(`Appointment ${data.appointmentId} completed`);
     } catch (error) {
-      this.logger.error(`appointment.completed handler error: ${error.message}`);
+      this.logger.error(
+        `appointment.completed handler error: ${error.message}`,
+      );
     } finally {
       this.rmqService.ack(context);
     }

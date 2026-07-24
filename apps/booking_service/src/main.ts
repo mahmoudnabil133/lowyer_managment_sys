@@ -5,10 +5,12 @@ import { RmqService } from '@app/rmq';
 
 async function bootstrap() {
   const app = await NestFactory.create(BookingServiceModule);
-  app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,
-    transform: true
-  }));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+    }),
+  );
   app.setGlobalPrefix('api/v1');
   const rmqService = app.get(RmqService);
   app.connectMicroservice(rmqService.getOptions('booking_queue'));

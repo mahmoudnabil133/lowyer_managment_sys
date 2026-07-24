@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Types } from "mongoose";
+import { Types } from 'mongoose';
 
 export enum AppointmentStatus {
   PENDING = 'pending',
@@ -27,7 +27,6 @@ export enum CancelledBy {
 // PATIENT INFO AS EMBEDDED DOCS (DENORMALIZED) IN APPOINTMENT DOCS FOR QUICK ACCESS
 @Schema({ _id: false })
 export class PatientInfo {
-
   @Prop({ type: Types.ObjectId, required: true })
   patientId: Types.ObjectId;
 
@@ -63,9 +62,7 @@ export class CancellationDetails {
 }
 
 @Schema({ _id: false })
-
 export class RescheduleInfo {
-
   @Prop({ type: Types.ObjectId })
   previousSlotId: Types.ObjectId;
 
@@ -162,7 +159,7 @@ export const AppointmentSchema = SchemaFactory.createForClass(Appointment);
 
 // indexes
 // provider dash (get all appointments for a provider on a date)
-AppointmentSchema.index(({ providerId: 1, startTime: 1 }))
+AppointmentSchema.index({ providerId: 1, startTime: 1 });
 
 // Patient history - get all past appointments for a patient
 AppointmentSchema.index({ 'patient.patientId': 1, startTime: -1 });
@@ -171,6 +168,11 @@ AppointmentSchema.index({ 'patient.patientId': 1, startTime: -1 });
 AppointmentSchema.index({ status: 1, startTime: 1 });
 
 // Reminder job - find appointments needing reminders
-AppointmentSchema.index({ reminder24hSent: 1, reminder1hSent: 1, status: 1, startTime: 1 });
+AppointmentSchema.index({
+  reminder24hSent: 1,
+  reminder1hSent: 1,
+  status: 1,
+  startTime: 1,
+});
 
 export type AppointmentDocument = Appointment & Document;

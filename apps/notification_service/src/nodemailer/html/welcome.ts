@@ -18,14 +18,18 @@ export function welcomeEmailHtml(name: string, verifyUrl?: string): string {
             Thank you for joining our platform. We're excited to have you on board.
             ${hasUrl ? 'Please verify your email address to get started.' : 'Please check your email for the verification code we sent you.'}
           </p>
-          ${hasUrl ? `
+          ${
+            hasUrl
+              ? `
           <table cellpadding="0" cellspacing="0" style="margin:0 auto 24px;">
             <tr><td style="background-color:#C5A55A;border-radius:8px;padding:12px 32px;">
               <a href="${url}" style="color:#FFFFFF;font-size:15px;font-weight:600;text-decoration:none;display:inline-block;">
                 Verify Email Address
               </a>
             </td></tr>
-          </table>` : ''}
+          </table>`
+              : ''
+          }
           <p style="color:#6B7280;font-size:13px;line-height:1.6;margin:0;">
             If you didn't create an account, please ignore this email.<br>
             &copy; ${new Date().getFullYear()} Lawyer Management System. All rights reserved.

@@ -1,223 +1,222 @@
 import {
-    IsString,
-    IsEnum,
-    IsNumber,
-    IsBoolean,
-    IsOptional,
-    IsArray,
-    IsMongoId,
-    IsDateString,
-    Min,
-    Max,
-    Matches,
-    ValidateNested,
-    ArrayMinSize,
-    IsUrl,
-    IsNotEmpty,
+  IsString,
+  IsEnum,
+  IsNumber,
+  IsBoolean,
+  IsOptional,
+  IsArray,
+  IsMongoId,
+  IsDateString,
+  Min,
+  Max,
+  Matches,
+  ValidateNested,
+  ArrayMinSize,
+  IsUrl,
+  IsNotEmpty,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PartialType } from '@nestjs/mapped-types';
 
-
-
 export enum AppointmentType {
-    IN_PERSON = 'in_person',
-    VIRTUAL = 'virtual',
-    HOME_VISIT = 'home_visit',
+  IN_PERSON = 'in_person',
+  VIRTUAL = 'virtual',
+  HOME_VISIT = 'home_visit',
 }
 
 export enum DayOfWeek {
-    Sunday = 0,
-    Monday = 1,
-    Tuesday = 2,
-    Wednesday = 3,
-    Thursday = 4,
-    Friday = 5,
-    Saturday = 6
+  Sunday = 0,
+  Monday = 1,
+  Tuesday = 2,
+  Wednesday = 3,
+  Thursday = 4,
+  Friday = 5,
+  Saturday = 6,
 }
 
 // ─── Schedule DTOs ─────────────────────────────────────────────────────────────
 
 export class TimeWindowDto {
-    @Matches(/^([01]\d|2[0-3]):([0-5]\d)$/, {
-        message: 'startTime must be HH:mm',
-    })
-    startTime: string;
+  @Matches(/^([01]\d|2[0-3]):([0-5]\d)$/, {
+    message: 'startTime must be HH:mm',
+  })
+  startTime: string;
 
-    @Matches(/^([01]\d|2[0-3]):([0-5]\d)$/, { message: 'endTime must be HH:mm' })
-    endTime: string;
+  @Matches(/^([01]\d|2[0-3]):([0-5]\d)$/, { message: 'endTime must be HH:mm' })
+  endTime: string;
 }
 
 export class DayScheduleDto {
-    @IsEnum(DayOfWeek)
-    dayOfWeek: DayOfWeek;
+  @IsEnum(DayOfWeek)
+  dayOfWeek: DayOfWeek;
 
-    @IsBoolean()
-    isWorking: boolean;
+  @IsBoolean()
+  isWorking: boolean;
 
-    @IsArray()
-    @ValidateNested({ each: true })
-    @Type(() => TimeWindowDto)
-    windows: TimeWindowDto[];
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TimeWindowDto)
+  windows: TimeWindowDto[];
 }
 
 export class CreateProviderScheduleDto {
-    // @IsMongoId()
-    // providerId: string;
+  // @IsMongoId()
+  // providerId: string;
 
-    @IsNumber()
-    @Min(5)
-    @Max(240)
-    slotDurationMinutes: number;
+  @IsNumber()
+  @Min(5)
+  @Max(240)
+  slotDurationMinutes: number;
 
-    @IsNumber()
-    @Min(0)
-    @Max(60)
-    bufferMinutes: number;
+  @IsNumber()
+  @Min(0)
+  @Max(60)
+  bufferMinutes: number;
 
-    @IsNumber()
-    @Min(1)
-    @Max(10)
-    maxConcurrentAppointments: number;
+  @IsNumber()
+  @Min(1)
+  @Max(10)
+  maxConcurrentAppointments: number;
 
-    @IsNumber()
-    @Min(1)
-    @Max(365)
-    advanceBookingDays: number;
+  @IsNumber()
+  @Min(1)
+  @Max(365)
+  advanceBookingDays: number;
 
-    @IsNumber()
-    @Min(0)
-    @Max(72)
-    minAdvanceBookingHours: number;
+  @IsNumber()
+  @Min(0)
+  @Max(72)
+  minAdvanceBookingHours: number;
 
-    @IsArray()
-    @ArrayMinSize(7)
-    @ValidateNested({ each: true })
-    @Type(() => DayScheduleDto)
-    weeklySchedule: DayScheduleDto[];
+  @IsArray()
+  @ArrayMinSize(7)
+  @ValidateNested({ each: true })
+  @Type(() => DayScheduleDto)
+  weeklySchedule: DayScheduleDto[];
 
-    @IsArray()
-    @IsDateString({}, { each: true })
-    @IsOptional()
-    blockedDates?: string[];
+  @IsArray()
+  @IsDateString({}, { each: true })
+  @IsOptional()
+  blockedDates?: string[];
 
-    @IsString()
-    timezone: string;
+  @IsString()
+  timezone: string;
 
-    @IsBoolean()
-    @IsOptional()
-    isActive?: boolean;
+  @IsBoolean()
+  @IsOptional()
+  isActive?: boolean;
 }
 
-export class UpdateProviderScheduleDto extends PartialType(CreateProviderScheduleDto) { }
+export class UpdateProviderScheduleDto extends PartialType(
+  CreateProviderScheduleDto,
+) {}
 
 // ─── Slot DTOs ─────────────────────────────────────────────────────────────────
 
 export class GetAvailableSlotsDto {
-    @IsMongoId()
-    providerId: string;
+  @IsMongoId()
+  providerId: string;
 
-    /** "YYYY-MM-DD" */
-    @IsDateString()
-    date: string;
+  /** "YYYY-MM-DD" */
+  @IsDateString()
+  date: string;
 }
 
 export class GetAvailableRangeDto {
-    @IsMongoId()
-    providerId: string;
+  @IsMongoId()
+  providerId: string;
 
-    @IsDateString()
-    fromDate: string;
+  @IsDateString()
+  fromDate: string;
 
-    @IsDateString()
-    toDate: string;
+  @IsDateString()
+  toDate: string;
 }
 
 export class HoldSlotDto {
-    @IsMongoId()
-    slotId: string;
+  @IsMongoId()
+  slotId: string;
 
-    @IsMongoId()
-    patientId: string;
+  @IsMongoId()
+  patientId: string;
 }
 
 // ─── Appointment DTOs ──────────────────────────────────────────────────────────
 
 // Remove patientId from BookAppointmentDto
 export class BookAppointmentDto {
+  @IsUrl()
+  @IsNotEmpty()
+  successUrl: string;
 
-    @IsUrl()
-    @IsNotEmpty()
-    successUrl: string;
+  @IsUrl()
+  @IsNotEmpty()
+  cancelUrl: string;
 
-    @IsUrl()
-    @IsNotEmpty()
-    cancelUrl: string;
+  @IsMongoId()
+  slotId: string;
 
-    @IsMongoId()
-    slotId: string;
+  @IsMongoId()
+  providerId: string;
 
-    @IsMongoId()
-    providerId: string;
+  @IsString()
+  patientFullName: string;
 
-    @IsString()
-    patientFullName: string;
+  @IsString()
+  patientPhone: string;
 
-    @IsString()
-    patientPhone: string;
+  @IsString()
+  @IsOptional()
+  patientEmail?: string;
 
-    @IsString()
-    @IsOptional()
-    patientEmail?: string;
+  @IsDateString()
+  @IsOptional()
+  patientDateOfBirth?: string;
 
-    @IsDateString()
-    @IsOptional()
-    patientDateOfBirth?: string;
+  @IsEnum(AppointmentType)
+  @IsOptional()
+  type?: AppointmentType;
 
-    @IsEnum(AppointmentType)
-    @IsOptional()
-    type?: AppointmentType;
-
-    @IsString()
-    @IsOptional()
-    chiefComplaint?: string;
+  @IsString()
+  @IsOptional()
+  chiefComplaint?: string;
 }
 
 // Remove cancelledByUserId and cancelledByRole
 export class CancelAppointmentDto {
-    @IsMongoId()
-    appointmentId: string;
+  @IsMongoId()
+  appointmentId: string;
 
-    @IsString()
-    reason: string;
+  @IsString()
+  reason: string;
 }
 
 // Remove rescheduledByUserId and rescheduledByRole
 export class RescheduleAppointmentDto {
-    @IsMongoId()
-    appointmentId: string;
+  @IsMongoId()
+  appointmentId: string;
 
-    @IsMongoId()
-    newSlotId: string;
+  @IsMongoId()
+  newSlotId: string;
 }
 
 // Remove changedByUserId and changedByRole
 export class UpdateAppointmentStatusDto {
-    @IsMongoId()
-    appointmentId: string;
+  @IsMongoId()
+  appointmentId: string;
 
-    @IsString()
-    toStatus: string;
+  @IsString()
+  toStatus: string;
 
-    @IsString()
-    @IsOptional()
-    note?: string;
+  @IsString()
+  @IsOptional()
+  note?: string;
 }
 
 export class ProviderNotesDto {
-    @IsMongoId()
-    appointmentId: string;
+  @IsMongoId()
+  appointmentId: string;
 
-    @IsString()
-    notes: string;
+  @IsString()
+  notes: string;
 }

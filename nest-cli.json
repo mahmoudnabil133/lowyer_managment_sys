@@ -10,6 +10,15 @@
   "monorepo": true,
   "root": "apps/auth_service",
   "projects": {
+    "ai_service": {
+      "type": "application",
+      "root": "apps/ai_service",
+      "entryFile": "main",
+      "sourceRoot": "apps/ai_service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/ai_service/tsconfig.app.json"
+      }
+    },
     "api-gateway": {
       "type": "application",
       "root": "apps/api-gateway",
@@ -44,6 +53,15 @@
       "sourceRoot": "libs/common/src",
       "compilerOptions": {
         "tsConfigPath": "libs/common/tsconfig.lib.json"
+      }
+    },
+    "document_service": {
+      "type": "application",
+      "root": "apps/document_service",
+      "entryFile": "main",
+      "sourceRoot": "apps/document_service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/document_service/tsconfig.app.json"
       }
     },
     "notification_service": {

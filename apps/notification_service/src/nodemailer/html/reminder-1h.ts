@@ -1,9 +1,9 @@
 export function reminder1hHtml(opts: {
-    patientName: string;
-    providerName: string;
-    meetingLink?: string;
+  patientName: string;
+  providerName: string;
+  meetingLink?: string;
 }): string {
-    return `
+  return `
 <!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
@@ -19,12 +19,16 @@ export function reminder1hHtml(opts: {
           <p style="color:#2C2C2C;font-size:15px;margin:0 0 24px;">
             Your appointment with <strong>${opts.providerName}</strong> starts in <strong>1 hour</strong>.
           </p>
-          ${opts.meetingLink ? `
+          ${
+            opts.meetingLink
+              ? `
           <table cellpadding="0" cellspacing="0" style="margin:0 auto 24px;">
             <tr><td style="background-color:#C5A55A;border-radius:8px;padding:14px 40px;">
               <a href="${opts.meetingLink}" style="color:#FFFFFF;font-size:16px;font-weight:700;text-decoration:none;">Join Now</a>
             </td></tr>
-          </table>` : ''}
+          </table>`
+              : ''
+          }
           <p style="color:#6B7280;font-size:13px;margin:0;">
             Please be on time. If you need to reschedule, please do so from your dashboard.
           </p>

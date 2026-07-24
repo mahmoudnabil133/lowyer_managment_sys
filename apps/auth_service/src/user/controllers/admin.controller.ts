@@ -6,7 +6,8 @@ import {
   Delete,
   Param,
   Body,
-  UseGuards, Query,
+  UseGuards,
+  Query,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 // import { RolesGuard } from '../../auth/Roles/roles.guard';
@@ -19,13 +20,11 @@ import { ApiQueryDto } from '../../../../../libs/common/src/global/dto/api-query
 import { ValidateObjectIdPipe } from '../../../../../libs/common/src/global/pipes/validateObjectId.pipe';
 import { Role, Roles, RolesGuard } from '@app/common';
 
-
-
 @Controller('admin')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 @Roles([Role.ADMIN])
 export class AdminController {
-  constructor(private readonly usersService: UserService) { }
+  constructor(private readonly usersService: UserService) {}
 
   // 🔹 CREATE USER
   @Post()

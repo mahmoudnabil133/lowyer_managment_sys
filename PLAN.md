@@ -279,6 +279,8 @@ Text search on `fullName`, `bio`, `specializations` (MongoDB text index).
 
 ## 📦 Phase 3 — Document Service
 
+> **Detailed plan:** [`docs/phase-2-document.md`](./docs/phase-2-document.md)
+
 **Goal:** Full document lifecycle — upload, store, version, share, OCR, e-sign.
 
 ### 🏗️ 3.1 — Scaffold Document Service

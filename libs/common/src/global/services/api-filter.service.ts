@@ -3,7 +3,6 @@ import * as querystring from 'node:querystring';
 import { PaginatedResponse } from '../types/paginated-res.interface';
 import { Injectable } from '@nestjs/common';
 
-
 export class ApiFeatureService<T> {
   public query: any;
   private queryString: any;
@@ -19,15 +18,18 @@ export class ApiFeatureService<T> {
     this.baseFilter = baseFilter;
   }
   filter() {
-    let excludeFields = ['limit', 'sort', 'page', 'select'];
-    let queryObj = { ...this.queryString };
-    excludeFields.forEach(f => delete queryObj[f]);
+    const excludeFields = ['limit', 'sort', 'page', 'select'];
+    const queryObj = { ...this.queryString };
+    excludeFields.forEach((f) => delete queryObj[f]);
     let queryStr = JSON.stringify(queryObj);
-    queryStr = queryStr.replace(/\b(gt|gte|lt|lte|eq|ne|in)\b/g, match => `$${match}`);
+    queryStr = queryStr.replace(
+      /\b(gt|gte|lt|lte|eq|ne|in)\b/g,
+      (match) => `$${match}`,
+    );
 
     this.filterQuery = {
       ...this.baseFilter,
-      ...JSON.parse(queryStr)
+      ...JSON.parse(queryStr),
     };
     this.query = this.query.find(this.filterQuery);
     return this;
@@ -43,7 +45,7 @@ export class ApiFeatureService<T> {
 
   select() {
     if (this.queryString.select) {
-      let feilds = this.queryString.select.split(',').join(' ');
+      const feilds = this.queryString.select.split(',').join(' ');
       this.query = this.query.select(feilds);
     }
     return this;
@@ -53,26 +55,28 @@ export class ApiFeatureService<T> {
     return this;
   }
   paginate() {
-    let page = Number(this.queryString.page) || 1;
-    let limit = Math.min(Number(this.queryString.limit) || 5, 100);
-    let skip = (page - 1) * limit;
+    const page = Number(this.queryString.page) || 1;
+    const limit = Math.min(Number(this.queryString.limit) || 5, 100);
+    const skip = (page - 1) * limit;
     this.query = this.query.skip(skip).limit(limit);
     return this;
   }
 
   async execute(): Promise<PaginatedResponse<T>> {
-    let currentPage = Number(this.queryString.page) || 1;
-    let limit = Number(this.queryString.limit) || 5;
-    let totalDocuments = Number(await this.model.countDocuments(this.filterQuery));
-    let totalPages = Number(Math.ceil(totalDocuments / limit));
+    const currentPage = Number(this.queryString.page) || 1;
+    const limit = Number(this.queryString.limit) || 5;
+    const totalDocuments = Number(
+      await this.model.countDocuments(this.filterQuery),
+    );
+    const totalPages = Number(Math.ceil(totalDocuments / limit));
 
-    let data = await this.query;
+    const data = await this.query;
     return {
       results: data.length,
       totalDocuments,
       currentPage,
       totalPages,
-      data
-    }
+      data,
+    };
   }
 }

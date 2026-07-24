@@ -5,10 +5,7 @@ import { RmqModule } from '@app/rmq';
 import { MailerModule } from './nodemailer/nodemailer.module';
 
 @Module({
-  imports: [
-    RmqModule.forRoot(),
-    MailerModule,
-  ],
+  imports: [RmqModule.forRoot(), MailerModule],
   controllers: [NotificationServiceController],
   providers: [NotificationServiceService],
 })

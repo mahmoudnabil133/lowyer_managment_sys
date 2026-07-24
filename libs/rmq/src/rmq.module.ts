@@ -2,45 +2,45 @@ import { DynamicModule, Module } from '@nestjs/common';
 import { RmqService } from './rmq.service';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-export interface RmqOprions{
+export interface RmqOprions {
   name: string;
   queue: string;
 }
 @Module({
-  imports: [ConfigModule.forRoot({isGlobal:true})],
+  imports: [ConfigModule.forRoot({ isGlobal: true })],
   providers: [RmqService],
   exports: [RmqService],
 })
 export class RmqModule {
-  static register({name, queue}: RmqOprions){
+  static register({ name, queue }: RmqOprions) {
     return {
       module: RmqModule,
-      imports:[
+      imports: [
         ClientsModule.registerAsync([
           {
             name,
-            imports:[ConfigModule],
-            useFactory:(configService: ConfigService)=>({
-              transport:Transport.RMQ,
-              options:{
-                urls:[configService.getOrThrow<string>('RMQ_URL')],
+            imports: [ConfigModule],
+            useFactory: (configService: ConfigService) => ({
+              transport: Transport.RMQ,
+              options: {
+                urls: [configService.getOrThrow<string>('RMQ_URL')],
                 queue,
-                queueOptions:{durable:true},
-              }
+                queueOptions: { durable: true },
+              },
             }),
-            inject:[ConfigService],
+            inject: [ConfigService],
           },
         ]),
       ],
-      exports :[ClientsModule]
+      exports: [ClientsModule],
     };
   }
 
-  static forRoot():DynamicModule{
+  static forRoot(): DynamicModule {
     return {
-      module:RmqModule,
-      providers:[RmqService],
-      exports:[RmqService]
-    }
+      module: RmqModule,
+      providers: [RmqService],
+      exports: [RmqService],
+    };
   }
 }

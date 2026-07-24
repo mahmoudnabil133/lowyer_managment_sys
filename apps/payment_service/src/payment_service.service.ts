@@ -12,10 +12,11 @@ export class PaymentServiceService {
   constructor(
     private readonly stripe: Stripe,
     @InjectModel(Payment.name) private readonly paymentModel: Model<Payment>,
-    @InjectModel(PaymentEvent.name) private readonly eventModel: Model<PaymentEvent>,
+    @InjectModel(PaymentEvent.name)
+    private readonly eventModel: Model<PaymentEvent>,
     private readonly configService: ConfigService,
     @Inject('BOOKING_SERVICE') private readonly bookingClient: ClientProxy, // RMQ Client
-  ) { }
+  ) {}
   async createCheckout(data: ICheckoutPayload) {
     const idempotencyKey = `${data.bookingRef}`;
     try {
@@ -59,12 +60,17 @@ export class PaymentServiceService {
 
       return { url: session.url };
     } catch (error) {
-      this.logger.error(`Checkout initialization failed for ${data.bookingRef}: ${error.message}`); throw error;
+      this.logger.error(
+        `Checkout initialization failed for ${data.bookingRef}: ${error.message}`,
+      );
+      throw error;
     }
   }
 
   async handleWebhook(signature: string, payload: Buffer) {
-    const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
+    const webhookSecret = this.configService.get<string>(
+      'STRIPE_WEBHOOK_SECRET',
+    );
     if (!webhookSecret) {
       this.logger.error('Stripe webhook secret is not configured');
       throw new Error('Internal Server Error');
@@ -78,7 +84,9 @@ export class PaymentServiceService {
         webhookSecret,
       );
     } catch (error) {
-      this.logger.error(`Webhook signature verification failed: ${error.message}`);
+      this.logger.error(
+        `Webhook signature verification failed: ${error.message}`,
+      );
       throw new Error('Invalid webhook signature');
     }
 
@@ -96,7 +104,7 @@ export class PaymentServiceService {
 
     switch (event.type) {
       case 'checkout.session.completed':
-        const session = event.data.object as Stripe.Checkout.Session;
+        const session = event.data.object;
         await this.handleCheckoutSessionCompleted(session);
         break;
       default:
@@ -104,27 +112,35 @@ export class PaymentServiceService {
     }
   }
 
-  private async handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
+  private async handleCheckoutSessionCompleted(
+    session: Stripe.Checkout.Session,
+  ) {
     const meta = session.metadata;
     if (!meta || !meta.bookingRef) {
-      this.logger.error(`Session ${session.id} completely missing essential tracking metadata blocks.`);
+      this.logger.error(
+        `Session ${session.id} completely missing essential tracking metadata blocks.`,
+      );
       return;
     }
-    this.logger.log(`Checkout processing confirmed for Reference Key: ${meta.bookingRef}`);
+    this.logger.log(
+      `Checkout processing confirmed for Reference Key: ${meta.bookingRef}`,
+    );
 
     const payment = await this.paymentModel.findOneAndUpdate(
       { bookingRef: meta.bookingRef },
       {
         $set: {
           status: PaymentStatus.COMPLETED,
-          stripePaymentIntentId: session.payment_intent as string,
+          stripePaymentIntentId: session.payment_intent,
         },
       },
       { new: true },
     );
 
     if (!payment) {
-      this.logger.error(`Payment row with Reference: ${meta.bookingRef} not found in database.`);
+      this.logger.error(
+        `Payment row with Reference: ${meta.bookingRef} not found in database.`,
+      );
       return;
     }
     this.bookingClient.emit('payment.succeeded', {
@@ -133,6 +149,5 @@ export class PaymentServiceService {
       paymentId: payment._id.toString(),
       amount: payment.amount,
     });
-
   }
 }

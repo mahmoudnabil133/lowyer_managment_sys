@@ -5,7 +5,6 @@ import * as nodemailer from 'nodemailer';
 import { ConfigModule } from '@nestjs/config';
 
 @Module({
-
   providers: [
     MailerService,
     {

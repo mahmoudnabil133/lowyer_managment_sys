@@ -93,7 +93,9 @@ export class CreateProviderScheduleDto {
   isActive?: boolean;
 }
 
-export class UpdateProviderScheduleDto extends PartialType(CreateProviderScheduleDto) { }
+export class UpdateProviderScheduleDto extends PartialType(
+  CreateProviderScheduleDto,
+) {}
 
 // export class UpdateProviderScheduleDto {
 //   @IsNumber()
@@ -157,7 +159,6 @@ export class HoldSlotDto {
 
 // Remove patientId from BookAppointmentDto
 export class BookAppointmentDto {
-
   @IsUrl()
   @IsNotEmpty()
   successUrl: string;

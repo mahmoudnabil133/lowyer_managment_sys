@@ -5,7 +5,8 @@ import {
   Delete,
   Body,
   Req,
-  UseGuards, Post,
+  UseGuards,
+  Post,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { UserService } from '../user.service';
@@ -14,12 +15,12 @@ import { UpdateUserDto } from '../dto/updateUser.dto';
 @Controller('profile')
 @UseGuards(AuthGuard('jwt'))
 export class ProfileController {
-  constructor(private readonly usersService: UserService) { }
+  constructor(private readonly usersService: UserService) {}
 
   // 🔹 GET MY PROFILE
   @Get()
   async getMyProfile(@Req() req: any) {
-    console.log("my user", req.user);
+    console.log('my user', req.user);
     const userId = req.user.userId;
     return this.usersService.findOne(userId);
   }
@@ -30,10 +31,7 @@ export class ProfileController {
 
   // 🔹 UPDATE MY PROFILE
   @Patch()
-  async updateMyProfile(
-    @Req() req: any,
-    @Body() updateUserDto: UpdateUserDto,
-  ) {
+  async updateMyProfile(@Req() req: any, @Body() updateUserDto: UpdateUserDto) {
     const userId = req.user.userId;
     return this.usersService.updateOne(userId, updateUserDto);
   }
@@ -46,8 +44,15 @@ export class ProfileController {
   }
 
   @Post()
-  async changePassword(@Req() req: any, @Body() body: { oldPassword: string, newPassword: string }) {
-    let userId = req.user.userId;
-    return await this.usersService.changePassword(userId, body.oldPassword, body.newPassword);
+  async changePassword(
+    @Req() req: any,
+    @Body() body: { oldPassword: string; newPassword: string },
+  ) {
+    const userId = req.user.userId;
+    return await this.usersService.changePassword(
+      userId,
+      body.oldPassword,
+      body.newPassword,
+    );
   }
 }

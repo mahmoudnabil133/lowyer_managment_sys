@@ -1,9 +1,21 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException, } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { SlotStatus, TimeSlot, TimeSlotDocument } from '../models/slot.schema';
 import { ClientSession, Model } from 'mongoose';
-import { ProviderSchedule, ProviderScheduleDocument, } from '../models/provider-schedule.schema';
-import { GetAvailableRangeDto, GetAvailableSlotsDto, HoldSlotDto, } from '../dtos/booking.dto';
+import {
+  ProviderSchedule,
+  ProviderScheduleDocument,
+} from '../models/provider-schedule.schema';
+import {
+  GetAvailableRangeDto,
+  GetAvailableSlotsDto,
+  HoldSlotDto,
+} from '../dtos/booking.dto';
 import { DateTime } from 'luxon';
 
 const HOLD_DURATION_MINUTES = 10;
@@ -15,7 +27,7 @@ export class AvailabilityService {
     public slotModel: Model<TimeSlotDocument>,
     @InjectModel(ProviderSchedule.name)
     public scheduleModel: Model<ProviderScheduleDocument>,
-  ) { }
+  ) {}
 
   // quiry all available slots (may by hold but expired)
   async getAvailableSlots(dto: GetAvailableSlotsDto) {
@@ -40,7 +52,7 @@ export class AvailabilityService {
 
   // return a clender style availability(monthly calender where each month has its own available slots)
   async getAvailabilityRange(dto: GetAvailableRangeDto) {
-    let now = new Date();
+    const now = new Date();
     const from = DateTime.fromISO(dto.fromDate); // converted type to DateTime
     const to = DateTime.fromISO(dto.toDate);
     if (from > to) {
@@ -64,13 +76,13 @@ export class AvailabilityService {
     const byDate = new Map<string, typeof slots>();
     for (const slot of slots) {
       if (!byDate.has(slot.date)) byDate.set(slot.date, []);
-      byDate.get(slot.date)!.push(slot);
+      byDate.get(slot.date).push(slot);
     }
     const result: { date: string; availableCount: number; slots: any[] }[] = [];
     let cursor = from;
 
     while (cursor <= to) {
-      let dateStr = cursor.toFormat('yyyy-MM-dd');
+      const dateStr = cursor.toFormat('yyyy-MM-dd');
       const dateSlots = byDate.get(dateStr) || [];
       result.push({
         date: dateStr,
@@ -93,8 +105,6 @@ export class AvailabilityService {
       .toJSDate();
 
     console.log(dto);
-
-
 
     const slot = await this.slotModel.findOneAndUpdate(
       {
@@ -143,7 +153,8 @@ export class AvailabilityService {
   // release slot
 
   async releaseSlot(slotId: string, patientId: string): Promise<any> {
-    const slot = await this.slotModel.findOneAndUpdate({ _id: slotId, holdBy: patientId, status: SlotStatus.HOLD },
+    const slot = await this.slotModel.findOneAndUpdate(
+      { _id: slotId, holdBy: patientId, status: SlotStatus.HOLD },
       {
         $set: {
           status: SlotStatus.AVAILABLE,
@@ -155,7 +166,7 @@ export class AvailabilityService {
     );
 
     if (!slot) {
-      throw new NotFoundException(`no held slots for this user`)
+      throw new NotFoundException(`no held slots for this user`);
     }
     return slot;
   }
@@ -166,7 +177,7 @@ export class AvailabilityService {
   /**
    * book appointment
    *  1- validate provider availability
-   *  
+   *
    */
   async validateProviderAvailability(
     providerId: string,
@@ -195,7 +206,7 @@ export class AvailabilityService {
     }
 
     // chcek max advance booking (prevent booking too far)
-    let maxDate = now.plus({ days: schedule.advanceBookingDays });
+    const maxDate = now.plus({ days: schedule.advanceBookingDays });
     if (apptDt > maxDate) {
       throw new BadRequestException(
         `Appointments can only be booked up to ${schedule.advanceBookingDays} days in advance`,

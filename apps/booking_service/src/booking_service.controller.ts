@@ -29,7 +29,10 @@ import {
 } from './dtos/booking.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { ProviderSchedule, ProviderScheduleDocument } from './models/provider-schedule.schema';
+import {
+  ProviderSchedule,
+  ProviderScheduleDocument,
+} from './models/provider-schedule.schema';
 import { AuthGuard } from '@nestjs/passport';
 import { Role, Roles, RolesGuard } from '@app/common';
 import { EventPattern, Payload } from '@nestjs/microservices';
@@ -39,7 +42,7 @@ import { EventPattern, Payload } from '@nestjs/microservices';
 @Controller('availability')
 @UseGuards(AuthGuard('jwt'))
 export class AvailabilityController {
-  constructor(private availabilityService: AvailabilityService) { }
+  constructor(private availabilityService: AvailabilityService) {}
 
   @Get('slots')
   getSlots(@Query() dto: GetAvailableSlotsDto) {
@@ -72,15 +75,18 @@ export class AvailabilityController {
 
 @Controller('appointments')
 export class AppointmentController {
-  constructor(private readonly appointmentService: AppointmentService) { }
+  constructor(private readonly appointmentService: AppointmentService) {}
 
   @EventPattern('payment.succeeded')
-  async handlePaymentSucceeded(@Payload() data: {
-    appointmentId: string;
-    bookingRef: string;
-    paymentId: string;
-    amount: number;
-  }) {
+  async handlePaymentSucceeded(
+    @Payload()
+    data: {
+      appointmentId: string;
+      bookingRef: string;
+      paymentId: string;
+      amount: number;
+    },
+  ) {
     console.log('payment.succeeded event calleed');
     await this.appointmentService.fulfillPaidAppointment(data);
   }
@@ -94,8 +100,8 @@ export class AppointmentController {
   }
 
   /**
- * for authenticated users 
- */
+   * for authenticated users
+   */
 
   @Get('my-appointments')
   @UseGuards(AuthGuard('jwt'))
@@ -106,11 +112,17 @@ export class AppointmentController {
     const userId = req.user.userId;
     const role = req.user.role;
     if (role === Role.USER) {
-      console.log(`user req, ${userId}`)
-      return await this.appointmentService.getPatientAppointments(userId, queryArgs);
+      console.log(`user req, ${userId}`);
+      return await this.appointmentService.getPatientAppointments(
+        userId,
+        queryArgs,
+      );
     }
-    console.log(`provider req, ${userId}`)
-    return await this.appointmentService.getProviderAppointments(userId, queryArgs);
+    console.log(`provider req, ${userId}`);
+    return await this.appointmentService.getProviderAppointments(
+      userId,
+      queryArgs,
+    );
   }
 
   @Get(':id')
@@ -127,8 +139,6 @@ export class AppointmentController {
     return await this.appointmentService.getAppointmentHistory(id);
   }
 
-
-
   /**
    * this 2 routes for admin users
    */
@@ -139,7 +149,10 @@ export class AppointmentController {
     @Param('providerId') providerId: string,
     @Query() queryArgs: any, // this capture page, limit, sort, status, date, etc
   ) {
-    return this.appointmentService.getProviderAppointments(providerId, queryArgs);
+    return this.appointmentService.getProviderAppointments(
+      providerId,
+      queryArgs,
+    );
   }
 
   @Get('patient/:patientId')
@@ -156,17 +169,24 @@ export class AppointmentController {
   @HttpCode(HttpStatus.OK)
   cancel(@Body() dto: CancelAppointmentDto, @Req() req: any) {
     const role = req.user.role === 'user' ? 'patient' : req.user.role;
-    return this.appointmentService.cancelAppointment(dto, req.user.userId, role);
+    return this.appointmentService.cancelAppointment(
+      dto,
+      req.user.userId,
+      role,
+    );
   }
 
   @Post('reschedule')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles([Role.ADMIN, Role.PROVIDER])
-
   @HttpCode(HttpStatus.OK)
   reschedule(@Body() dto: RescheduleAppointmentDto, @Req() req: any) {
     const role = req.user.role === 'user' ? 'patient' : req.user.role;
-    return this.appointmentService.rescheduleAppointment(dto, req.user.userId, role);
+    return this.appointmentService.rescheduleAppointment(
+      dto,
+      req.user.userId,
+      role,
+    );
   }
 
   @Patch('status')
@@ -195,11 +215,14 @@ export class ScheduleController {
     @InjectModel(ProviderSchedule.name)
     private scheduleModel: Model<ProviderScheduleDocument>,
     private slotGenerator: SlotGeneratorService,
-  ) { }
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async createSchedule(@Body() dto: CreateProviderScheduleDto, @Req() req: any) {
+  async createSchedule(
+    @Body() dto: CreateProviderScheduleDto,
+    @Req() req: any,
+  ) {
     const providerId = req.user.userId;
     const schedule = await this.scheduleModel.create({ ...dto, providerId });
     // Generate slots for next 30 days immediately
@@ -211,7 +234,6 @@ export class ScheduleController {
     );
     return schedule;
   }
-
 
   @Get('mySchedule')
   @UseGuards(AuthGuard('jwt')) // Make sure jwt strategy populates req.user
@@ -226,9 +248,6 @@ export class ScheduleController {
     console.log(providerId);
     return await this.scheduleModel.findOne({ providerId }).lean();
   }
-
-
-
 
   // get my schedule
 

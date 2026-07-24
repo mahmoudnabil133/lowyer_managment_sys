@@ -1,12 +1,12 @@
 export function cancellationHtml(opts: {
-    patientName: string;
-    providerName: string;
-    date: string;
-    time: string;
-    bookingRef: string;
-    reason?: string;
+  patientName: string;
+  providerName: string;
+  date: string;
+  time: string;
+  bookingRef: string;
+  reason?: string;
 }): string {
-    return `
+  return `
 <!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>

@@ -10,14 +10,16 @@ import { JwtStrategyService, RolesGuard } from '@app/common';
 import { AuthRpcController } from '../rpcController/auth.rpc.controller';
 import { AuthRpcService } from '../rpcController/auth.rpc.service';
 
-
 @Module({
   imports: [
-    UserModule, MongooseModule.forFeature([{ name: RefreshToken.name, schema: RefreshSchema }]),
+    UserModule,
+    MongooseModule.forFeature([
+      { name: RefreshToken.name, schema: RefreshSchema },
+    ]),
     MailerModule,
     SharedRmqModule,
   ],
   controllers: [AuthController, AuthRpcController],
   providers: [AuthService, JwtStrategyService, RolesGuard, AuthRpcService],
 })
-export class AuthModule { }
+export class AuthModule {}

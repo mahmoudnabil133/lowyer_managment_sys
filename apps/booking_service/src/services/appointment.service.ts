@@ -48,7 +48,7 @@ const ALLOWED_TRANSITIONS: Record<AppointmentStatus, AppointmentStatus[]> = {
   ],
   [AppointmentStatus.CHECKED_IN]: [
     AppointmentStatus.IN_PROGRESS,
-    AppointmentStatus.COMPLETED
+    AppointmentStatus.COMPLETED,
   ],
   [AppointmentStatus.IN_PROGRESS]: [AppointmentStatus.COMPLETED],
   [AppointmentStatus.COMPLETED]: [],
@@ -66,10 +66,10 @@ export class AppointmentService {
     private historyModel: Model<AppointmentHistoryDocument>,
     @InjectConnection() private connection: Connection,
     private availabilityService: AvailabilityService,
-    @Inject('NOTIFICATION_SERVICE') private readonly notificationClient: ClientProxy,
+    @Inject('NOTIFICATION_SERVICE')
+    private readonly notificationClient: ClientProxy,
     @Inject('PAYMENT_SERVICE') private readonly paymentClient: ClientProxy,
-
-  ) { }
+  ) {}
 
   // create appointment
   // steps
@@ -87,11 +87,14 @@ export class AppointmentService {
 
   async bookAppointment(dto: BookAppointmentDto, patientId: string) {
     console.log(dto);
-    const slot = await this.availabilityService.findSlotById(dto.slotId)
+    const slot = await this.availabilityService.findSlotById(dto.slotId);
     if (!slot) {
       throw new NotFoundException('Slot not found');
     }
-    if (slot.status === SlotStatus.HOLD && slot.holdBy?.toString() !== patientId) {
+    if (
+      slot.status === SlotStatus.HOLD &&
+      slot.holdBy?.toString() !== patientId
+    ) {
       throw new ConflictException('Slot is hold by another user');
     }
     const isHeldBySystem =
@@ -100,10 +103,11 @@ export class AppointmentService {
     if (!isHeldBySystem) {
       throw new ConflictException('Slot is no longer availablee');
     }
-    const schedule = await this.availabilityService.validateProviderAvailability(
-      dto.providerId,
-      slot.startTime,
-    );
+    const schedule =
+      await this.availabilityService.validateProviderAvailability(
+        dto.providerId,
+        slot.startTime,
+      );
     const session = await this.connection.startSession();
     let appointment: any;
     try {
@@ -175,7 +179,10 @@ export class AppointmentService {
 
       // NestJS ClientProxy uses .send() for request-response over RMQ
       const response = await lastValueFrom(
-        this.paymentClient.send<{ url: string }>('payment.create_checkout', paymentPayload)
+        this.paymentClient.send<{ url: string }>(
+          'payment.create_checkout',
+          paymentPayload,
+        ),
       );
       console.log(response);
 
@@ -185,9 +192,13 @@ export class AppointmentService {
         checkoutUrl: response.url,
       };
     } catch (error) {
-      this.logger.error(`Failed to obtain checkout session link from Payment Service: ${error.message}`);
-      throw new BadRequestException('Payment initialization failed. Please try again.');
-    }    // await this.publishEvent('appointment.booked', {
+      this.logger.error(
+        `Failed to obtain checkout session link from Payment Service: ${error.message}`,
+      );
+      throw new BadRequestException(
+        'Payment initialization failed. Please try again.',
+      );
+    } // await this.publishEvent('appointment.booked', {
     //   appointmentId: appointment!._id,
     //   bookingRef: appointment!.bookingRef,
     //   providerId: dto.providerId,
@@ -202,11 +213,15 @@ export class AppointmentService {
 
   // fulfillPaidAppointment
 
-  async fulfillPaidAppointment(payload: { appointmentId: string, bookingRef: string, paymentId: string, amount: number }) {
+  async fulfillPaidAppointment(payload: {
+    appointmentId: string;
+    bookingRef: string;
+    paymentId: string;
+    amount: number;
+  }) {
     const session = await this.connection.startSession();
 
     try {
-
       console.log('fulfillPaidAppointment');
 
       await session.withTransaction(async () => {
@@ -215,13 +230,17 @@ export class AppointmentService {
           .session(session);
 
         if (!appointment) {
-          this.logger.error(`Critical: Appointment ${payload.appointmentId} not found during fulfillment.`);
+          this.logger.error(
+            `Critical: Appointment ${payload.appointmentId} not found during fulfillment.`,
+          );
           return;
         }
 
         // Safeguard against duplicate event deliveries
         if (appointment.status === AppointmentStatus.CONFIRMED) {
-          this.logger.warn(`Appointment ${payload.bookingRef} is already marked as CONFIRMED.`);
+          this.logger.warn(
+            `Appointment ${payload.bookingRef} is already marked as CONFIRMED.`,
+          );
           return;
         }
 
@@ -248,13 +267,20 @@ export class AppointmentService {
           ],
           { session },
         );
-        const confirmedAppt = await this.appointmentModel.findById(payload.appointmentId).lean();
+        const confirmedAppt = await this.appointmentModel
+          .findById(payload.appointmentId)
+          .lean();
         if (confirmedAppt) {
-          await this.publishEvent(NOTIFICATION_PATTERNS.APPOINTMENT_BOOKED, confirmedAppt);
+          await this.publishEvent(
+            NOTIFICATION_PATTERNS.APPOINTMENT_BOOKED,
+            confirmedAppt,
+          );
         }
       });
     } catch (error) {
-      this.logger.error(`Failed to confirm appointment ${payload.appointmentId}: ${error.message}`);
+      this.logger.error(
+        `Failed to confirm appointment ${payload.appointmentId}: ${error.message}`,
+      );
       throw error;
     } finally {
       await session.endSession();
@@ -265,7 +291,11 @@ export class AppointmentService {
    *
    * */
 
-  async cancelAppointment(dto: CancelAppointmentDto, cancelledByUserId: string, cancelledByRole: string) {
+  async cancelAppointment(
+    dto: CancelAppointmentDto,
+    cancelledByUserId: string,
+    cancelledByRole: string,
+  ) {
     const appointment = await this.appointmentModel.findById(dto.appointmentId);
     if (!appointment) {
       throw new NotFoundException('Appointment not found');
@@ -336,7 +366,6 @@ export class AppointmentService {
       refundRequired: appointment.isPaid,
     });
     return appointment;
-
   }
 
   /*
@@ -354,7 +383,11 @@ export class AppointmentService {
    * 11) event publish
    * */
 
-  async rescheduleAppointment(dto: RescheduleAppointmentDto, rescheduledByUserId: string, rescheduledByRole: string) {
+  async rescheduleAppointment(
+    dto: RescheduleAppointmentDto,
+    rescheduledByUserId: string,
+    rescheduledByRole: string,
+  ) {
     console.log(`reschedule dto is ==> \n${JSON.stringify(dto)}`);
 
     const appointment = await this.appointmentModel.findById(dto.appointmentId);
@@ -365,9 +398,7 @@ export class AppointmentService {
     if (appointment.slotId.toString() === dto.newSlotId) {
       throw new BadRequestException('new slot is same as old slot');
     }
-    const slot = await this.availabilityService.findSlotById(
-      dto.newSlotId,
-    );
+    const slot = await this.availabilityService.findSlotById(dto.newSlotId);
     if (!slot) {
       throw new NotFoundException('new slot not found');
     }
@@ -517,7 +548,7 @@ export class AppointmentService {
   async getAppointmentById(id: string): Promise<AppointmentDocument> {
     const appt = await this.appointmentModel.findById(id).lean();
     if (!appt) throw new NotFoundException('Appointment not found');
-    return appt as any;
+    return appt;
   }
   async getProviderAppointments(providerId: string, queryArgs: any) {
     const filter: any = { providerId };
@@ -534,19 +565,18 @@ export class AppointmentService {
     delete queryArgs.date;
     delete queryArgs.status;
 
-    const features = new ApiFeatureService(queryArgs, this.appointmentModel, filter);
+    const features = new ApiFeatureService(
+      queryArgs,
+      this.appointmentModel,
+      filter,
+    );
 
     if (!queryArgs.sort) {
       features.query = features.query.sort({ startTime: 1 });
     }
 
     // 5. Chain the rest of the features and execute
-    return await features
-      .filter()
-      .sort()
-      .select()
-      .paginate()
-      .execute();
+    return await features.filter().sort().select().paginate().execute();
   }
 
   async getPatientAppointments(patientId: string, queryArgs: any) {
@@ -565,23 +595,22 @@ export class AppointmentService {
     delete queryArgs.date;
     delete queryArgs.status;
 
-    const features = new ApiFeatureService(queryArgs, this.appointmentModel, filter);
+    const features = new ApiFeatureService(
+      queryArgs,
+      this.appointmentModel,
+      filter,
+    );
 
     if (!queryArgs.sort) {
       features.query = features.query.sort({ startTime: -1 });
     }
 
-    return await features
-      .filter()
-      .sort()
-      .select()
-      .paginate()
-      .execute();
+    return await features.filter().sort().select().paginate().execute();
   }
 
   // get appointment history (audit trails)
   async getAppointmentHistory(appointmentId: string) {
-    console.log({ appointmentId })
+    console.log({ appointmentId });
     return await this.historyModel
       .find({ appointmentId: new Types.ObjectId(appointmentId) })
       .sort({ createdAt: 1 })
@@ -611,10 +640,7 @@ export class AppointmentService {
     return `APT-${date}-${suffix}`;
   }
 
-  private async publishEvent(
-    pattern: string,
-    payload: object,
-  ): Promise<void> {
+  private async publishEvent(pattern: string, payload: object): Promise<void> {
     try {
       // NestJS ClientProxy uses .emit() for asynchronous fire-and-forget message patterns
       this.notificationClient.emit(pattern, {

@@ -8,10 +8,12 @@ import { APP_FILTER } from '@nestjs/core';
 import { CatchExceptionsFilter } from '@app/common';
 
 @Module({
-  imports: [UserModule, AuthModule,
+  imports: [
+    UserModule,
+    AuthModule,
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env'
+      envFilePath: '.env',
     }),
     JwtModule.register({
       global: true,
@@ -22,10 +24,9 @@ import { CatchExceptionsFilter } from '@app/common';
         return {
           uri: config.get('Mongo_Uri'),
         };
-      }
+      },
     }),
-
   ],
-  providers: [{ provide: APP_FILTER, useClass: CatchExceptionsFilter }]
+  providers: [{ provide: APP_FILTER, useClass: CatchExceptionsFilter }],
 })
-export class AppModule { }
+export class AppModule {}

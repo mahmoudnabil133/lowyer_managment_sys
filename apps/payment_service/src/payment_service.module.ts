@@ -6,14 +6,19 @@ import { APP_FILTER } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
-import { Payment, PaymentEvent, PaymentEventSchema, PaymentSchema } from './payment.schema';
+import {
+  Payment,
+  PaymentEvent,
+  PaymentEventSchema,
+  PaymentSchema,
+} from './payment.schema';
 import { RmqModule } from '@app/rmq';
 import Stripe from 'stripe';
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env'
+      envFilePath: '.env',
     }),
     // JwtModule.register({
     //   global: true,
@@ -24,7 +29,7 @@ import Stripe from 'stripe';
         return {
           uri: config.get('Mongo_Uri'),
         };
-      }
+      },
     }),
     MongooseModule.forFeature([
       { name: Payment.name, schema: PaymentSchema },
@@ -33,7 +38,6 @@ import Stripe from 'stripe';
 
     // RmqModule.register({ name: 'NOTIFICATION_SERVICE', queue: 'notification_queue' }),
     RmqModule.register({ name: 'BOOKING_SERVICE', queue: 'booking_queue' }),
-
   ],
   controllers: [PaymentServiceController],
   providers: [
@@ -47,7 +51,7 @@ import Stripe from 'stripe';
         });
       },
     },
-    { provide: APP_FILTER, useClass: CatchExceptionsFilter }
+    { provide: APP_FILTER, useClass: CatchExceptionsFilter },
   ],
 })
-export class PaymentServiceModule { }
+export class PaymentServiceModule {}

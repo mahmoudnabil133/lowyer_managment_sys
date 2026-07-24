@@ -1,12 +1,12 @@
 export function reminder24hHtml(opts: {
-    patientName: string;
-    providerName: string;
-    date: string;
-    time: string;
-    location: string;
-    meetingLink?: string;
+  patientName: string;
+  providerName: string;
+  date: string;
+  time: string;
+  location: string;
+  meetingLink?: string;
 }): string {
-    return `
+  return `
 <!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
@@ -28,12 +28,16 @@ export function reminder24hHtml(opts: {
             <tr><td style="font-size:14px;color:#6B7280;">Time</td><td style="font-size:14px;color:#2C2C2C;font-weight:600;">${opts.time}</td></tr>
             <tr><td style="font-size:14px;color:#6B7280;">Location</td><td style="font-size:14px;color:#2C2C2C;font-weight:600;">${opts.location}</td></tr>
           </table>
-          ${opts.meetingLink ? `
+          ${
+            opts.meetingLink
+              ? `
           <table cellpadding="0" cellspacing="0" style="margin:0 auto;">
             <tr><td style="background-color:#C5A55A;border-radius:8px;padding:12px 32px;">
               <a href="${opts.meetingLink}" style="color:#FFFFFF;font-size:15px;font-weight:600;text-decoration:none;">Join Meeting</a>
             </td></tr>
-          </table>` : ''}
+          </table>`
+              : ''
+          }
           <p style="color:#6B7280;font-size:13px;margin:24px 0 0;">
             &copy; ${new Date().getFullYear()} Lawyer Management System
           </p>

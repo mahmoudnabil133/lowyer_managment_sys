@@ -1,8 +1,6 @@
 import { IsNumber, IsOptional, IsString } from 'class-validator';
 
-
 export class ApiQueryDto {
-
   @IsNumber()
   @IsOptional()
   page?: number;

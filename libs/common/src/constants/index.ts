@@ -1,1 +1,1 @@
-export * from "./rmq-patterns";
+export * from './rmq-patterns';

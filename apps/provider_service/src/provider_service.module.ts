@@ -3,7 +3,11 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { APP_FILTER } from '@nestjs/core';
-import { CatchExceptionsFilter, JwtStrategyService, RolesGuard } from '@app/common';
+import {
+  CatchExceptionsFilter,
+  JwtStrategyService,
+  RolesGuard,
+} from '@app/common';
 import { RmqModule } from '@app/rmq';
 
 import {
@@ -36,7 +40,10 @@ import { AdminController } from './controllers/admin.controller';
       { name: ProviderProfile.name, schema: ProviderProfileSchema },
       { name: ProviderReview.name, schema: ProviderReviewSchema },
     ]),
-    RmqModule.register({ name: 'NOTIFICATION_SERVICE', queue: 'notification_queue' }),
+    RmqModule.register({
+      name: 'NOTIFICATION_SERVICE',
+      queue: 'notification_queue',
+    }),
     RmqModule.register({ name: 'BOOKING_SERVICE', queue: 'booking_queue' }),
     RmqModule.register({ name: 'AUTH_SERVICE', queue: 'auth_queue' }),
   ],
@@ -55,4 +62,4 @@ import { AdminController } from './controllers/admin.controller';
     { provide: APP_FILTER, useClass: CatchExceptionsFilter },
   ],
 })
-export class ProviderServiceModule { }
+export class ProviderServiceModule {}

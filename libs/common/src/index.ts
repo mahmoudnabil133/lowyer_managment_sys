@@ -12,4 +12,4 @@ export * from './global/services/api-filter.service';
 export * from './global/filters/global.filter';
 export * from './global/filters/gateway.filter';
 
-export * from './constants'
+export * from './constants';

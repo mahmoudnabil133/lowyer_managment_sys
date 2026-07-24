@@ -7,9 +7,11 @@ import { AdminController } from './controllers/admin.controller';
 import { ProfileController } from './controllers/profile.controller';
 
 @Module({
-  imports: [MongooseModule.forFeature([{ name: User.name, schema: UserSchema }])],
+  imports: [
+    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+  ],
   controllers: [AdminController, ProfileController],
   providers: [UserService],
   exports: [UserService],
 })
-export class UserModule { }
+export class UserModule {}
