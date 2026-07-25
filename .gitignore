@@ -37,6 +37,9 @@ docs
 !.vscode/launch.json
 !.vscode/extensions.json
 
+# opencode config
+opencode.json
+
 # dotenv environment variable files
 .env
 .env.development.local
