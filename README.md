@@ -35,6 +35,8 @@
   - [Provider Service](#-provider-service)
   - [Payment Service](#-payment-service)
   - [Notification Service](#-notification-service)
+  - [AI Service](#-ai-service)
+  - [Document Service](#-document-service)
 - [Shared Libraries](#shared-libraries)
 - [Messaging Architecture](#messaging-architecture)
 - [Service Communication Matrix](#service-communication-matrix)
@@ -80,10 +82,13 @@ flowchart LR
     Gateway --> Booking["Booking Service :3002"]
     Gateway --> Provider["Provider Service :3005"]
     Gateway --> Payment["Payment Service :3004"]
+    Gateway --> AI["AI Service :3006"]
+    Gateway --> Document["Document Service :3007"]
     Booking -- "events" --> RMQ["RabbitMQ"]
     RMQ --> Notify["Notification Service :3003"]
     Payment --> RMQ
     Auth --> RMQ
+    Document -- "events" --> RMQ
 ```
 
 ---
@@ -150,6 +155,8 @@ flowchart TB
         Provider["Provider Service :3005<br/>provider_queue"]
         Payment["Payment Service :3004<br/>payment_queue"]
         Notify["Notification Service :3003<br/>notification_queue"]
+        AI["AI Service :3006<br/>ai_queue"]
+        Document["Document Service :3007<br/>document_queue"]
     end
 
     DB[("MongoDB Atlas")]
@@ -162,11 +169,14 @@ flowchart TB
     RMQ -.->|"provider_queue"| Provider
     RMQ -.->|"payment_queue"| Payment
     RMQ -.->|"notification_queue"| Notify
+    RMQ -.->|"ai_queue"| AI
+    RMQ -.->|"document_queue"| Document
 
     Auth --> DB
     Booking --> DB
     Provider --> DB
     Payment --> DB
+    Document --> DB
 ```
 
 ### Request Flow
@@ -287,6 +297,14 @@ graph TB
         NotifyCtrl["NotificationController (RMQ only)"]
     end
 
+    subgraph "AI Service :3006"
+        AIRPC["AiRpcController (RMQ)"]
+    end
+
+    subgraph "Document Service :3007"
+        DocRPC["DocumentRpcController (RMQ)"]
+    end
+
     AuthCtrl --> AuthRPC
     BookingCtrl --> BookingRPC
     ProviderCtrl --> ProvRPC
@@ -314,14 +332,14 @@ graph TB
 | **@nestjs/schedule** | 6 | Cron jobs | Appointment reminder scheduling (24h and 1h before) |
 | **Jest** | 30 | Testing | Unit and integration tests co-located with source files |
 | **ESLint / Prettier** | 9 / 3 | Code quality | Consistent code style via `singleQuote`, `trailingComma: "all"` |
-| **Concurrently** | 9 | Dev tooling | Run all 6 services in parallel with a single command |
+| **Concurrently** | 9 | Dev tooling | Run all 8 services in parallel with a single command |
 
 ---
 
 ## Monorepo Structure
 
 ```
-booking_system/
+lawyer_managment_sys/
 ├── .env                          # Environment variables (live secrets — do NOT commit)
 ├── .gitignore
 ├── .prettierrc                   # singleQuote: true, trailingComma: "all"
@@ -386,15 +404,33 @@ booking_system/
 │   │       ├── payment.schema.ts
 │   │       └── types.ts
 │   │
-│   └── provider_service/         # Provider profiles & reviews (port 3005)
+│   ├── provider_service/         # Provider profiles & reviews (port 3005)
+│   │   └── src/
+│   │       ├── main.ts
+│   │       ├── provider_service.module.ts
+│   │       ├── controllers/      # Profile, Review, Admin controllers
+│   │       ├── dtos/             # Profile, Review, Search DTOs
+│   │       ├── models/           # Mongoose schemas
+│   │       ├── rpc/              # RMQ message handlers
+│   │       └── services/         # Business logic
+│   │
+│   ├── ai_service/               # RAG chatbot with Gemini (port 3006)
+│   │   └── src/
+│   │       ├── main.ts
+│   │       ├── ai_service.module.ts
+│   │       ├── ai_service.controller.ts
+│   │       ├── rpc/              # RMQ message handlers for chat
+│   │       └── services/         # RAG service, Gemini integration
+│   │
+│   └── document_service/         # Document upload, CRUD, Cloudinary (port 3007)
 │       └── src/
 │           ├── main.ts
-│           ├── provider_service.module.ts
-│           ├── controllers/      # Profile, Review, Admin controllers
-│           ├── dtos/             # Profile, Review, Search DTOs
-│           ├── models/           # Mongoose schemas
+│           ├── document_service.module.ts
+│           ├── document_service.controller.ts
 │           ├── rpc/              # RMQ message handlers
-│           └── services/         # Business logic
+│           ├── services/         # Upload, text extraction, document logic
+│           ├── dtos/             # Document DTOs
+│           └── models/           # Mongoose schemas
 │
 ├── libs/
 │   ├── common/                   # Shared library: auth, guards, pipes, filters, DTOs
@@ -409,7 +445,7 @@ booking_system/
 │       └── src/
 │           ├── index.ts
 │           ├── rmq.module.ts
-│           └── rmq.service.ts    # getOptions(queue), ack(context)
+│           └── rmq.service.ts    # getOptions(queue) — auto-ack (noAck: true)
 │
 ├── dist/                         # Build output (gitignored)
 ├── node_modules/                 # Dependencies (gitignored)
@@ -450,6 +486,8 @@ booking_system/
 | `AUTH_SERVICE` | `auth_queue` |
 | `BOOKING_SERVICE` | `booking_queue` |
 | `PROVIDER_SERVICE` | `provider_queue` |
+| `DOCUMENT_SERVICE` | `document_queue` |
+| `AI_SERVICE` | `ai_queue` |
 
 **Authentication Flow:**
 
@@ -602,6 +640,46 @@ stateDiagram-v2
 
 ---
 
+### 🤖 AI Service
+
+**Role:** RAG chatbot powered by Gemini and MongoDB Atlas Vector Search.
+
+| Property | Value |
+|---|---|
+| Port | 3006 |
+| Queue | `ai_queue` |
+| HTTP Endpoints | None (RMQ consumer only) |
+| RMQ Patterns | `ai.chat` |
+
+**Capabilities:**
+
+- PDF document ingestion into vector store (LangChain + MongoDB Atlas)
+- Semantic similarity search over document chunks
+- Gemini-powered answer generation from retrieved context
+- Auto-indexing: listens for `ai.document.created` / `ai.document.deleted` events from document service
+
+---
+
+### 📄 Document Service
+
+**Role:** Document upload, storage, and lifecycle management.
+
+| Property | Value |
+|---|---|
+| Port | 3007 |
+| Queue | `document_queue` |
+| Global Prefix | `api/v1` |
+
+**Capabilities:**
+
+- File upload to Cloudinary (with multer)
+- Document CRUD via RMQ RPC handlers
+- PDF text extraction
+- Emits `ai.document.created` / `ai.document.deleted` to AI service for RAG indexing
+- Persistent storage in MongoDB with Cloudinary URLs
+
+---
+
 ## Shared Libraries
 
 ### `@app/common`
@@ -638,11 +716,8 @@ A shared library for RabbitMQ connection management.
 export class RmqService {
   constructor(private readonly configService: ConfigService) {}
 
-  // Creates RMQ connection options for a given queue
-  getOptions(queue: string, noAck = false): RmqOptions;
-
-  // Ack a message after successful processing
-  ack(context: RmqContext): void;
+  // Creates RMQ connection options for a given queue (auto-ack by default)
+  getOptions(queue: string, noAck = true): RmqOptions;
 }
 ```
 
@@ -679,6 +754,8 @@ graph LR
         PRX["PROVIDER_CLIENT"]
         PYX["PAYMENT_CLIENT"]
         NX["NOTIFICATION_CLIENT"]
+        DX["DOCUMENT_CLIENT"]
+        AIX["AI_CLIENT"]
     end
 
     subgraph "RabbitMQ"
@@ -687,6 +764,8 @@ graph LR
         PQ["provider_queue"]
         PYQ["payment_queue"]
         NQ["notification_queue"]
+        DQ["document_queue"]
+        AIQ["ai_queue"]
     end
 
     subgraph "Consumers"
@@ -695,6 +774,8 @@ graph LR
         PS["Provider Service"]
         PYS["Payment Service"]
         NS["Notification Service"]
+        DS["Document Service"]
+        AIS["AI Service"]
     end
 
     AUX -->|"send/emit"| AQ
@@ -702,12 +783,16 @@ graph LR
     PRX -->|"send/emit"| PQ
     PYX -->|"send/emit"| PYQ
     NX -->|"emit only"| NQ
+    DX -->|"send/emit"| DQ
+    AIX -->|"send"| AIQ
 
     AQ --> AS
     BQ --> BS
     PQ --> PS
     PYQ --> PYS
     NQ --> NS
+    DQ --> DS
+    AIQ --> AIS
 ```
 
 ### Naming Conventions
@@ -763,6 +848,13 @@ All pattern constants are defined in `libs/common/src/constants/rmq-patterns.ts`
 | API Gateway | Provider Service | `provider.verifyCredential` | Admin verify credential |
 | API Gateway | Provider Service | `provider.listUnverifiedCredentials` | List unverified credentials |
 | API Gateway | Payment Service | `payment.create_checkout` | Create Stripe checkout session |
+| API Gateway | Document Service | `document.create` | Upload document |
+| API Gateway | Document Service | `document.get` | Get document by ID |
+| API Gateway | Document Service | `document.list` | List user documents |
+| API Gateway | Document Service | `document.update` | Update document metadata |
+| API Gateway | Document Service | `document.delete` | Delete document |
+| API Gateway | Document Service | `document.download` | Download document |
+| API Gateway | AI Service | `ai.chat` | Chat with RAG chatbot |
 
 ### Events (Fire-and-Forget) via `@EventPattern`
 
@@ -774,6 +866,8 @@ All pattern constants are defined in `libs/common/src/constants/rmq-patterns.ts`
 | Booking Service | Notification Service | `appointment.rescheduled` | Send reschedule notice |
 | Booking Service | Notification Service | `appointment.completed` | Send completion email |
 | Payment Service | Booking Service | `payment.succeeded` | Confirm appointment |
+| Document Service | AI Service | `ai.document.created` | Index document chunks for RAG |
+| Document Service | AI Service | `ai.document.deleted` | Remove document chunks from vector store |
 
 ---
 
@@ -862,6 +956,8 @@ All paths are prefixed with `/api/v1`.
 | `NOTIFICATION_PORT` | Notification service HTTP port (3003) | |
 | `PAYMENT_PORT` | Payment service HTTP port (3004) | |
 | `PROVIDER_PORT` | Provider service HTTP port (3005) | |
+| `AI_PORT` | AI service HTTP port (3006) | |
+| `DOCUMENT_PORT` | Document service HTTP port (3007) | |
 | `GATEWAY_PORT` | API Gateway HTTP port (3010) | |
 | `Mongo_Uri` | MongoDB Atlas connection string | ✅ Yes |
 | `RMQ_URL` | CloudAMQP connection URL | ✅ Yes |
@@ -906,6 +1002,8 @@ npm run start:booking
 npm run start:notification
 npm run start:payment
 npm run start:provider
+npm run start:ai
+npm run start:document
 npm run start:api-gateway
 ```
 
@@ -915,7 +1013,7 @@ npm run start:api-gateway
 npm run start:dev:all
 ```
 
-This runs all 6 services concurrently via the `concurrently` package. Each service binds to its configured port.
+This runs all 8 services concurrently via the `concurrently` package. Each service binds to its configured port.
 
 ### Build
 
@@ -982,6 +1080,8 @@ graph TB
             N["notification-service:3003"]
             P["payment-service:3004"]
             R["provider-service:3005"]
+            AI["ai-service:3006"]
+            D["document-service:3007"]
         end
         M["mongo:7"]
         Q["rabbitmq:3-management"]
@@ -994,7 +1094,7 @@ graph TB
 **Planned:**
 
 - Multi-stage Dockerfiles per service (`node:20-alpine`)
-- `docker-compose.yml` for development with MongoDB + RabbitMQ + all 6 services
+- `docker-compose.yml` for development with MongoDB + RabbitMQ + all 8 services
 - `docker-compose.prod.yml` with health checks, resource limits, restart policies
 - Traefik or Nginx reverse proxy with SSL termination
 
@@ -1077,8 +1177,8 @@ async listUnverifiedCredentials() { ... }
 |---|---|---|---|
 | Phase 0 | Foundation + Notification Service | High | ✅ Complete |
 | Phase 1 | Provider Service | High | ✅ Complete |
-| Phase 2 | **AI Agents Service** — smart scheduling, no-show prediction, chatbot, document classification, provider matching | Medium | 📋 Planned |
-| Phase 3 | **Document Service** — upload, versioning, OCR, e-signatures, templates, access control | Medium | 📋 Planned |
+| Phase 2 | **AI Agents Service** — RAG chatbot with Gemini + Atlas Vector Search | Medium | ✅ Complete |
+| Phase 3 | **Document Service** — upload, CRUD, Cloudinary storage, text extraction | Medium | ✅ Complete |
 | Phase 4 | **Analytics Service** — revenue analytics, appointment metrics, provider performance, dashboard, report export | Medium | 📋 Planned |
 | Phase 5 | **DevOps** — Docker, Kubernetes, CI/CD, monitoring, logging, secrets management | High | 📋 Planned |
 
@@ -1208,7 +1308,7 @@ service_name/
 
 ### Why Microservices?
 
-This system manages **six distinct business domains** (auth, booking, providers, payments, notifications, and future AI/document/analytics). A monolithic architecture would couple these domains, making independent deployment, scaling, and team ownership impossible. Microservices give us:
+This system manages **eight distinct business domains** (auth, booking, providers, payments, notifications, AI, documents, and future analytics). A monolithic architecture would couple these domains, making independent deployment, scaling, and team ownership impossible. Microservices give us:
 
 - **Independent deployability** — update booking logic without touching auth
 - **Fault isolation** — a bug in notification email templates never blocks a payment
