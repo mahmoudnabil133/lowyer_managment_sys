@@ -3,6 +3,7 @@ import {
   HttpStatus,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -21,6 +22,8 @@ import { NOTIFICATION_PATTERNS } from '@app/common';
 
 @Injectable()
 export class AuthRpcService {
+  private readonly logger = new Logger(AuthRpcService.name);
+
   constructor(
     private readonly jwtService: JwtService,
     private readonly userService: UserService,
@@ -34,14 +37,13 @@ export class AuthRpcService {
 
   async login(body: { email: string; password: string }) {
     const user = await this.userService.findByEmail(body.email);
-    console.log(user);
 
     if (!user || !(await bcrypt.compare(body.password, user.password))) {
-      console.log('here invalid');
+      this.logger.warn(`Failed login attempt for ${body.email}`);
 
       throw new NotFoundException('Invalid Credentials');
     }
-    console.log(`User logged in: ${user.email}`);
+    this.logger.log(`User logged in: ${user.email}`);
     return await this.createAndSendToken(user._id, user.email, user.role);
   }
 
@@ -157,7 +159,7 @@ export class AuthRpcService {
   }
 
   async validateEmailVerificationCode(code: string) {
-    console.log(code);
+    this.logger.log(`Validating verification code for email`);
     const user = await this.userService.findByEmailverificationCode(
       this.createHash(code),
     );

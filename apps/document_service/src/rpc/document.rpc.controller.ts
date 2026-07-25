@@ -1,4 +1,4 @@
-import { Controller, Inject } from '@nestjs/common';
+import { Controller, Inject, Logger } from '@nestjs/common';
 import {
   MessagePattern,
   Payload,
@@ -13,6 +13,8 @@ import { DocumentService } from '../services/document.service';
 
 @Controller()
 export class DocumentRpcController {
+  private readonly logger = new Logger(DocumentRpcController.name);
+
   constructor(
     private readonly documentService: DocumentService,
     @Inject('AI_SERVICE') private readonly aiClient: ClientProxy,
@@ -42,7 +44,7 @@ export class DocumentRpcController {
         data.file,
         data.dto,
       );
-      console.log(`doc after creation`, doc);
+      this.logger.log(`Document ${doc._id} created, emitting AI event`);
       this.aiClient.emit(AI_DOCUMENT_EVENTS.DOCUMENT_CREATED, {
         documentId: doc._id.toString(),
         ownerId: data.ownerId,

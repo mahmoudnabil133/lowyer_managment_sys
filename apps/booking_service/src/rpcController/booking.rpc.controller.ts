@@ -1,5 +1,5 @@
 // apps/booking_service/src/booking.rpc.controller.ts
-import { Controller } from '@nestjs/common';
+import { Controller, Logger } from '@nestjs/common';
 import { MessagePattern, Payload, RpcException } from '@nestjs/microservices';
 import {
   BookAppointmentDto,
@@ -20,6 +20,8 @@ import { DateTime } from 'luxon';
 
 @Controller()
 export class BookingRpcController {
+  private readonly logger = new Logger(BookingRpcController.name);
+
   constructor(
     private readonly appointmentService: AppointmentService,
     private readonly availabilityService: AvailabilityService,
@@ -28,7 +30,7 @@ export class BookingRpcController {
 
   // Helper method to convert internal exceptions to formatted RpcExceptions
   private handleRpcError(err: any) {
-    console.error(`Error in Booking Microservice: ${err.message}`);
+    this.logger.error(`RPC error: ${err.message}`);
 
     throw new RpcException({
       message: err.message || 'Internal error occurred in booking service',
@@ -48,7 +50,6 @@ export class BookingRpcController {
         data.patientId,
       );
     } catch (err) {
-      console.log(err);
       this.handleRpcError(err);
     }
   }

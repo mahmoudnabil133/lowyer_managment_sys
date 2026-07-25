@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
@@ -12,6 +13,7 @@ import { ApiFeatureService } from '@app/common';
 
 @Injectable()
 export class ReviewService {
+  private readonly logger = new Logger(ReviewService.name);
   constructor(
     @InjectModel(ProviderReview.name)
     private readonly reviewModel: Model<ProviderReview>,
@@ -24,14 +26,12 @@ export class ReviewService {
     const profile = await this.profileModel.findOne({
       userId: new Types.ObjectId(providerId),
     });
-    console.log(profile);
     if (!profile) throw new NotFoundException('Provider not found');
 
     // Check if already reviewed this appointment
     const existing = await this.reviewModel.findOne({
       appointmentId: new Types.ObjectId(dto.appointmentId),
     });
-    console.log(existing);
 
     if (existing)
       throw new BadRequestException(

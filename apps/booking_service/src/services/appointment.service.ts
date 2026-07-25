@@ -86,7 +86,6 @@ export class AppointmentService {
    * */
 
   async bookAppointment(dto: BookAppointmentDto, patientId: string) {
-    console.log(dto);
     const slot = await this.availabilityService.findSlotById(dto.slotId);
     if (!slot) {
       throw new NotFoundException('Slot not found');
@@ -184,7 +183,9 @@ export class AppointmentService {
           paymentPayload,
         ),
       );
-      console.log(response);
+      this.logger.log(
+        `Checkout session created for booking ${appointment.bookingRef}`,
+      );
 
       // Return both the pending database entry and the checkout page redirection URL
       return {
@@ -222,7 +223,7 @@ export class AppointmentService {
     const session = await this.connection.startSession();
 
     try {
-      console.log('fulfillPaidAppointment');
+      this.logger.log(`Fulfilling paid appointment ${payload.appointmentId}`);
 
       await session.withTransaction(async () => {
         const appointment = await this.appointmentModel
@@ -388,7 +389,9 @@ export class AppointmentService {
     rescheduledByUserId: string,
     rescheduledByRole: string,
   ) {
-    console.log(`reschedule dto is ==> \n${JSON.stringify(dto)}`);
+    this.logger.log(
+      `Rescheduling appointment ${dto.appointmentId} to slot ${dto.newSlotId}`,
+    );
 
     const appointment = await this.appointmentModel.findById(dto.appointmentId);
     if (!appointment) {
@@ -610,7 +613,7 @@ export class AppointmentService {
 
   // get appointment history (audit trails)
   async getAppointmentHistory(appointmentId: string) {
-    console.log({ appointmentId });
+    this.logger.log(`Fetching history for appointment ${appointmentId}`);
     return await this.historyModel
       .find({ appointmentId: new Types.ObjectId(appointmentId) })
       .sort({ createdAt: 1 })

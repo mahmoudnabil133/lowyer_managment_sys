@@ -1,10 +1,19 @@
-import { Controller, Get, HttpStatus, Post, Req, Res } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  HttpStatus,
+  Logger,
+  Post,
+  Req,
+  Res,
+} from '@nestjs/common';
 import { PaymentServiceService } from './payment_service.service';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import type { ICheckoutPayload } from './types';
 import * as express from 'express';
 @Controller('payment')
 export class PaymentServiceController {
+  private readonly logger = new Logger(PaymentServiceController.name);
   constructor(private readonly paymentServiceService: PaymentServiceService) {}
 
   @MessagePattern('payment.create_checkout')
@@ -23,7 +32,7 @@ export class PaymentServiceController {
     const rawBody = (req as any).rawBody || req.body;
 
     try {
-      console.log('webhook called');
+      this.logger.log('Stripe webhook received');
 
       await this.paymentServiceService.handleWebhook(signature, rawBody);
       return res.status(HttpStatus.OK).send({ received: true });

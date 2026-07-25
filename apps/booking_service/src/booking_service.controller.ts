@@ -11,6 +11,7 @@ import {
   HttpCode,
   HttpStatus,
   Req,
+  Logger,
 } from '@nestjs/common';
 import { AppointmentService } from './services/appointment.service';
 import { AvailabilityService } from './services/avaiilability.service';
@@ -42,6 +43,7 @@ import { EventPattern, Payload } from '@nestjs/microservices';
 @Controller('availability')
 @UseGuards(AuthGuard('jwt'))
 export class AvailabilityController {
+  private readonly logger = new Logger(AvailabilityController.name);
   constructor(private availabilityService: AvailabilityService) {}
 
   @Get('slots')
@@ -65,7 +67,7 @@ export class AvailabilityController {
   @HttpCode(HttpStatus.OK)
   releaseHold(@Param('slotId') slotId: string, @Req() req: any) {
     const data: HoldSlotDto = { slotId, patientId: req.user.userId };
-    console.log(data);
+    this.logger.log(`Release hold for slot ${data.slotId}`);
 
     return this.availabilityService.releaseSlot(data.slotId, data.patientId);
   }
@@ -75,6 +77,7 @@ export class AvailabilityController {
 
 @Controller('appointments')
 export class AppointmentController {
+  private readonly logger = new Logger(AppointmentController.name);
   constructor(private readonly appointmentService: AppointmentService) {}
 
   @EventPattern('payment.succeeded')
@@ -87,7 +90,7 @@ export class AppointmentController {
       amount: number;
     },
   ) {
-    console.log('payment.succeeded event calleed');
+    this.logger.log(`payment.succeeded for appointment ${data.appointmentId}`);
     await this.appointmentService.fulfillPaidAppointment(data);
   }
   @Post()
@@ -112,13 +115,13 @@ export class AppointmentController {
     const userId = req.user.userId;
     const role = req.user.role;
     if (role === Role.USER) {
-      console.log(`user req, ${userId}`);
+      this.logger.log(`Fetching patient appointments for ${userId}`);
       return await this.appointmentService.getPatientAppointments(
         userId,
         queryArgs,
       );
     }
-    console.log(`provider req, ${userId}`);
+    this.logger.log(`Fetching provider appointments for ${userId}`);
     return await this.appointmentService.getProviderAppointments(
       userId,
       queryArgs,
@@ -211,6 +214,7 @@ export class AppointmentController {
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 @Roles([Role.PROVIDER, Role.ADMIN])
 export class ScheduleController {
+  private readonly logger = new Logger(ScheduleController.name);
   constructor(
     @InjectModel(ProviderSchedule.name)
     private scheduleModel: Model<ProviderScheduleDocument>,
@@ -238,14 +242,14 @@ export class ScheduleController {
   @Get('mySchedule')
   @UseGuards(AuthGuard('jwt')) // Make sure jwt strategy populates req.user
   async getMySchedule(@Req() req: any) {
-    const providerId = req.user.userId; // e.g., "64b0f1..."
-    console.log(providerId);
+    const providerId = req.user.userId;
+    this.logger.log(`Fetching schedule for provider ${providerId}`);
     return await this.scheduleModel.findOne({ providerId }).lean();
   }
 
   @Get(':providerId')
   async getSchedule(@Param('providerId') providerId: string) {
-    console.log(providerId);
+    this.logger.log(`Fetching schedule for provider ${providerId}`);
     return await this.scheduleModel.findOne({ providerId }).lean();
   }
 

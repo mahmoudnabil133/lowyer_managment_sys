@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AiServiceModule } from './ai_service.module';
 import { RmqService } from '@app/rmq';
@@ -8,6 +9,6 @@ async function bootstrap() {
   app.connectMicroservice(rmqService.getOptions('ai_queue'));
   await app.startAllMicroservices();
   await app.listen(process.env.AI_PORT ?? 3006);
-  console.log(`AI service is running on port ${process.env.AI_PORT ?? 3006}`);
+  Logger.log(`AI service is running on port ${process.env.AI_PORT ?? 3006}`);
 }
 bootstrap();

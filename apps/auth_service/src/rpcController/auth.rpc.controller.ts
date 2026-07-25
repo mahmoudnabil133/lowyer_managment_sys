@@ -1,14 +1,16 @@
-import { Controller } from '@nestjs/common';
+import { Controller, Logger } from '@nestjs/common';
 import { MessagePattern, Payload, RpcException } from '@nestjs/microservices';
 import { AuthRpcService } from '../rpcController/auth.rpc.service';
 
 @Controller()
 export class AuthRpcController {
+  private readonly logger = new Logger(AuthRpcController.name);
+
   constructor(private readonly authService: AuthRpcService) {}
 
   // Helper method to catch microservice errors and convert them to RpcException
   private handleRpcError(err: any) {
-    console.error(`Error in Microservice: ${err.message}`);
+    this.logger.error(`RPC error: ${err.message}`);
 
     // Pass out a structured object so the gateway filter can extract it
     throw new RpcException({

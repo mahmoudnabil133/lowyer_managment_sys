@@ -1,12 +1,13 @@
 import {
-  Controller,
-  Get,
-  Patch,
-  Delete,
   Body,
+  Controller,
+  Delete,
+  Get,
+  Logger,
+  Patch,
+  Post,
   Req,
   UseGuards,
-  Post,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { UserService } from '../user.service';
@@ -15,12 +16,14 @@ import { UpdateUserDto } from '../dto/updateUser.dto';
 @Controller('profile')
 @UseGuards(AuthGuard('jwt'))
 export class ProfileController {
+  private readonly logger = new Logger(ProfileController.name);
+
   constructor(private readonly usersService: UserService) {}
 
   // 🔹 GET MY PROFILE
   @Get()
   async getMyProfile(@Req() req: any) {
-    console.log('my user', req.user);
+    this.logger.log(`Profile fetched for user ${req.user?.userId}`);
     const userId = req.user.userId;
     return this.usersService.findOne(userId);
   }

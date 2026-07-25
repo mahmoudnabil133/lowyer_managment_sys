@@ -1,7 +1,7 @@
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentServiceModule } from './document_service.module';
 import { RmqService } from '@app/rmq';
-import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(DocumentServiceModule);
@@ -11,7 +11,7 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   await app.startAllMicroservices();
   await app.listen(process.env.DOCUMENT_PORT ?? 3007);
-  console.log(
+  Logger.log(
     `Document service is running on port ${process.env.DOCUMENT_PORT ?? 3007}`,
   );
 }

@@ -3,6 +3,7 @@ import {
   Catch,
   HttpException,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { BaseExceptionFilter } from '@nestjs/core';
 import { Response } from 'express';
@@ -25,7 +26,10 @@ export class CatchGatewayExceptionsFilter extends BaseExceptionFilter {
     };
     let statusCode = HttpStatus.BAD_REQUEST;
 
-    console.log('Captured Exception: ', exception);
+    Logger.error(
+      `Gateway exception: ${exception?.message}`,
+      CatchGatewayExceptionsFilter.name,
+    );
 
     // 1️⃣ FIX: Directly check for the root microservice object properties matching your log
     if (exception && exception.statusCode && exception.message) {

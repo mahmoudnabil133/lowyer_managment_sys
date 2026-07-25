@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -22,6 +23,7 @@ const HOLD_DURATION_MINUTES = 10;
 
 @Injectable()
 export class AvailabilityService {
+  private readonly logger = new Logger(AvailabilityService.name);
   constructor(
     @InjectModel(TimeSlot.name)
     public slotModel: Model<TimeSlotDocument>,
@@ -104,7 +106,7 @@ export class AvailabilityService {
       .plus({ minutes: HOLD_DURATION_MINUTES })
       .toJSDate();
 
-    console.log(dto);
+    this.logger.log(`Holding slot ${dto.slotId} for patient ${dto.patientId}`);
 
     const slot = await this.slotModel.findOneAndUpdate(
       {

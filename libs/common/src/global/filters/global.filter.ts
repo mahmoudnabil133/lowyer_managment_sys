@@ -1,4 +1,4 @@
-import { ArgumentsHost, Catch, HttpException } from '@nestjs/common';
+import { ArgumentsHost, Catch, HttpException, Logger } from '@nestjs/common';
 import { BaseExceptionFilter } from '@nestjs/core';
 import { Response } from 'express';
 import { Error } from 'mongoose';
@@ -21,8 +21,16 @@ interface ServerError {
 @Catch()
 export class CatchExceptionsFilter extends BaseExceptionFilter {
   catch(exception: any, host: ArgumentsHost): void {
+    Logger.error(
+      `Unhandled exception: ${exception?.message}`,
+      CatchExceptionsFilter.name,
+    );
+
+    if (host.getType() === 'rpc') {
+      return;
+    }
+
     const object: ServerError = {};
-    console.log(exception);
     object.code = 400;
     const res = host.switchToHttp().getResponse<Response>();
     if (

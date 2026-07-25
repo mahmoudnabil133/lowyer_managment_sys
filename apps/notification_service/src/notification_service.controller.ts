@@ -1,6 +1,5 @@
 import { Controller, Logger, UseFilters } from '@nestjs/common';
-import { Ctx, EventPattern, Payload, RmqContext } from '@nestjs/microservices';
-import { RmqService } from '@app/rmq';
+import { EventPattern, Payload } from '@nestjs/microservices';
 import { MailerService } from './nodemailer/nodemailer.service';
 import { NOTIFICATION_PATTERNS } from '@app/common';
 import { CatchExceptionsFilter } from '@app/common';
@@ -61,10 +60,7 @@ interface AppointmentStatusPayload {
 export class NotificationServiceController {
   private readonly logger = new Logger(NotificationServiceController.name);
 
-  constructor(
-    private readonly rmqService: RmqService,
-    private readonly mailerService: MailerService,
-  ) {}
+  constructor(private readonly mailerService: MailerService) {}
 
   private fmtDate(d: Date | string): string {
     return new Date(d).toLocaleDateString('en-US', {
@@ -87,10 +83,7 @@ export class NotificationServiceController {
   }
 
   @EventPattern(NOTIFICATION_PATTERNS.USER_CREATED)
-  async handleUserCreated(
-    @Payload() data: UserCreatedPayload,
-    @Ctx() context: RmqContext,
-  ) {
+  async handleUserCreated(@Payload() data: UserCreatedPayload) {
     try {
       await this.mailerService.sendWelcomeEmail({
         mail: data.email,
@@ -99,16 +92,11 @@ export class NotificationServiceController {
       this.logger.log(`Welcome email sent to ${data.email}`);
     } catch (error) {
       this.logger.error(`user_created handler error: ${error.message}`);
-    } finally {
-      this.rmqService.ack(context);
     }
   }
 
   @EventPattern(NOTIFICATION_PATTERNS.APPOINTMENT_BOOKED)
-  async handleAppointmentBooked(
-    @Payload() data: AppointmentBookedPayload,
-    @Ctx() context: RmqContext,
-  ) {
+  async handleAppointmentBooked(@Payload() data: AppointmentBookedPayload) {
     try {
       await this.mailerService.sendBookingConfirmation({
         mail: data.patient.email,
@@ -123,15 +111,12 @@ export class NotificationServiceController {
       this.logger.log(`Booking confirmation sent to ${data.patient.email}`);
     } catch (error) {
       this.logger.error(`appointment.booked handler error: ${error.message}`);
-    } finally {
-      this.rmqService.ack(context);
     }
   }
 
   @EventPattern(NOTIFICATION_PATTERNS.APPOINTMENT_CANCELLED)
   async handleAppointmentCancelled(
     @Payload() data: AppointmentCancelledPayload,
-    @Ctx() context: RmqContext,
   ) {
     try {
       await this.mailerService.sendCancellationNotice({
@@ -148,15 +133,12 @@ export class NotificationServiceController {
       this.logger.error(
         `appointment.cancelled handler error: ${error.message}`,
       );
-    } finally {
-      this.rmqService.ack(context);
     }
   }
 
   @EventPattern(NOTIFICATION_PATTERNS.APPOINTMENT_RESCHEDULED)
   async handleAppointmentRescheduled(
     @Payload() data: AppointmentRescheduledPayload,
-    @Ctx() context: RmqContext,
   ) {
     try {
       await this.mailerService.sendRescheduledNotice({
@@ -174,40 +156,21 @@ export class NotificationServiceController {
       this.logger.error(
         `appointment.rescheduled handler error: ${error.message}`,
       );
-    } finally {
-      this.rmqService.ack(context);
     }
   }
 
   @EventPattern('appointment.checked_in')
-  async handleAppCheckedIn(
-    @Payload() data: AppointmentStatusPayload,
-    @Ctx() context: RmqContext,
-  ) {
-    try {
-      this.logger.log(`Appointment ${data.appointmentId} checked in`);
-    } finally {
-      this.rmqService.ack(context);
-    }
+  async handleAppCheckedIn(@Payload() data: AppointmentStatusPayload) {
+    this.logger.log(`Appointment ${data.appointmentId} checked in`);
   }
 
   @EventPattern('appointment.in_progress')
-  async handleAppInProgress(
-    @Payload() data: AppointmentStatusPayload,
-    @Ctx() context: RmqContext,
-  ) {
-    try {
-      this.logger.log(`Appointment ${data.appointmentId} in progress`);
-    } finally {
-      this.rmqService.ack(context);
-    }
+  async handleAppInProgress(@Payload() data: AppointmentStatusPayload) {
+    this.logger.log(`Appointment ${data.appointmentId} in progress`);
   }
 
   @EventPattern('appointment.completed')
-  async handleAppCompleted(
-    @Payload() data: AppointmentStatusPayload,
-    @Ctx() context: RmqContext,
-  ) {
+  async handleAppCompleted(@Payload() data: AppointmentStatusPayload) {
     try {
       if (data.patientEmail) {
         await this.mailerService.sendAppointmentCompleted({
@@ -220,8 +183,6 @@ export class NotificationServiceController {
       this.logger.error(
         `appointment.completed handler error: ${error.message}`,
       );
-    } finally {
-      this.rmqService.ack(context);
     }
   }
 }

@@ -3,6 +3,7 @@ import {
   HttpStatus,
   Inject,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -21,6 +22,8 @@ import { NOTIFICATION_PATTERNS } from '@app/common';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly jwtService: JwtService,
     private readonly userService: UserService,
@@ -41,7 +44,7 @@ export class AuthService {
     if (!user || !(await bcrypt.compare(body.password, user.password))) {
       throw new HttpException('Invalid Credentials', HttpStatus.UNAUTHORIZED);
     }
-    console.log(`User logged in: ${user.email}`);
+    this.logger.log(`User logged in: ${user.email}`);
     return await this.createAndSendToken(user._id, user.email, user.role, res);
   }
 
@@ -162,7 +165,7 @@ export class AuthService {
   }
 
   async validateEmailVerificationCode(code: string) {
-    console.log(code);
+    this.logger.log(`Validating email verification code`);
     const user = await this.userService.findByEmailverificationCode(
       this.createHash(code),
     );

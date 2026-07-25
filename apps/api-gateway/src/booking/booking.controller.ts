@@ -10,6 +10,7 @@ import {
   HttpStatus,
   Delete,
   UseGuards,
+  Logger,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import {
@@ -30,6 +31,8 @@ import type { AuthUserDto } from '../dots/AuthUser.dto';
 @Controller()
 @UseGuards(AuthGuard('jwt'))
 export class BookingController {
+  private readonly logger = new Logger(BookingController.name);
+
   constructor(private readonly bookingService: BookingService) {}
 
   // ─── Appointments ──────────────────────────────────────────────────────────
@@ -40,7 +43,7 @@ export class BookingController {
     @Body() dto: BookAppointmentDto,
     @CurrentUser() user: AuthUserDto,
   ) {
-    console.log(user);
+    this.logger.log(`Booking appointment for user ${user.userId}`);
     return this.bookingService.book(dto, user.userId);
   }
 
